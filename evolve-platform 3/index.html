@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#071c2d" />
+  <meta name="description" content="Evolve Technology Solutions Hub combines enterprise AI solutions with practical technology education to help businesses innovate and talent thrive." />
+  <meta property="og:title" content="Evolve | Technology Solutions Hub" />
+  <meta property="og:description" content="Innovating AI solutions. Empowering tomorrow's talent." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="assets/evolve-logo.jpg" />
+  <title>Evolve | Technology Solutions Hub</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <style>
+    :root {
+      --navy: #071c2d;
+      --navy-2: #0a2b40;
+      --teal: #087f8c;
+      --teal-bright: #15c4c0;
+      --aqua: #8ce8e1;
+      --ink: #102433;
+      --muted: #60727e;
+      --paper: #f5f8fa;
+      --line: #dce6ea;
+      --white: #fff;
+      --shadow: 0 22px 70px rgba(6, 35, 52, .13);
+      --radius: 22px;
+      --max: 1160px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 92px; }
+    body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: #fff; line-height: 1.65; }
+    body.menu-open { overflow: hidden; }
+    a { color: inherit; text-decoration: none; }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    img { max-width: 100%; display: block; }
+    .container { width: min(var(--max), calc(100% - 44px)); margin-inline: auto; }
+    .skip-link { position: absolute; left: 16px; top: -80px; z-index: 200; padding: 10px 14px; border-radius: 10px; background: #fff; color: var(--navy); }
+    .skip-link:focus { top: 12px; }
+    .topline { background: #061725; color: #cce1e5; font-size: .78rem; letter-spacing: .11em; text-transform: uppercase; }
+    .topline-inner { display:flex; align-items:center; justify-content:space-between; gap:18px; min-height:34px; }
+    .topline strong { color: var(--aqua); font-weight:700; }
+    .header { position: sticky; top: 0; z-index: 100; background: rgba(7,28,45,.96); backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,.08); }
+    .nav-wrap { display:flex; align-items:center; justify-content:space-between; min-height:82px; gap:24px; }
+    .brand { display:flex; align-items:center; width:205px; flex:0 0 205px; overflow:hidden; }
+    .brand img { width:205px; height:73px; object-fit:contain; object-position:center; border-radius:5px; }
+    .nav { display:flex; align-items:center; gap:23px; color:#e7f2f4; font-size:.89rem; }
+    .nav a { opacity:.86; transition:opacity .2s,color .2s; }
+    .nav a:hover, .nav a:focus-visible { opacity:1; color:var(--aqua); }
+    .nav-cta { display:flex; align-items:center; gap:10px; }
+    .menu-toggle { display:none; border:1px solid rgba(255,255,255,.24); color:#fff; background:transparent; border-radius:12px; width:44px; height:44px; font-size:1.3rem; }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:10px; border:0; border-radius:999px; padding:13px 20px; font-weight:700; font-size:.9rem; transition:transform .2s, box-shadow .2s, background .2s; }
+    .btn:hover { transform:translateY(-2px); }
+    .btn-primary { color:#06232e; background:linear-gradient(105deg,var(--aqua),#63d7d0); box-shadow:0 9px 25px rgba(21,196,192,.18); }
+    .btn-primary:hover { box-shadow:0 14px 32px rgba(21,196,192,.27); }
+    .btn-outline { color:#fff; border:1px solid rgba(255,255,255,.3); background:rgba(255,255,255,.04); }
+    .btn-outline:hover { background:rgba(255,255,255,.11); }
+    .btn-dark { background:var(--navy); color:#fff; }
+    .btn-light { background:#fff; color:var(--navy); border:1px solid var(--line); }
+    .icon { width:19px; height:19px; display:inline-block; flex:0 0 auto; }
+
+    .hero { position:relative; isolation:isolate; overflow:hidden; color:#fff; background:radial-gradient(ellipse at 78% 15%,rgba(21,196,192,.21),transparent 32%),radial-gradient(ellipse at 10% 95%,rgba(7,127,140,.34),transparent 35%),linear-gradient(124deg,#061725 0%,#082b40 57%,#07515b 100%); padding:95px 0 82px; }
+    .hero:before { content:""; position:absolute; inset:0; z-index:-1; opacity:.26; background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px); background-size:58px 58px; mask-image:linear-gradient(90deg,black,transparent 88%); }
+    .hero:after { content:""; position:absolute; z-index:-1; width:610px; height:610px; right:-210px; top:-230px; border:1px solid rgba(140,232,225,.16); border-radius:50%; box-shadow:0 0 0 55px rgba(140,232,225,.035),0 0 0 110px rgba(140,232,225,.025),0 0 0 165px rgba(140,232,225,.018); }
+    .hero-grid { display:grid; grid-template-columns:1.16fr .84fr; align-items:center; gap:58px; }
+    .eyebrow { display:inline-flex; align-items:center; gap:9px; color:#9ce9e3; font-size:.76rem; text-transform:uppercase; letter-spacing:.16em; font-weight:800; }
+    .eyebrow:before { content:""; width:25px; height:2px; background:var(--teal-bright); }
+    h1 { font-size:clamp(2.7rem,6.1vw,5.25rem); line-height:1.02; letter-spacing:-.055em; margin:19px 0 22px; max-width:760px; }
+    h1 span { color:#83e5df; }
+    .hero-copy { max-width:620px; color:#d4e5e9; font-size:1.08rem; line-height:1.8; }
+    .hero-actions { display:flex; flex-wrap:wrap; align-items:center; gap:13px; margin-top:31px; }
+    .hero-foot { display:flex; align-items:center; flex-wrap:wrap; gap:19px; margin-top:38px; color:#b8d1d7; font-size:.82rem; }
+    .hero-foot span { display:inline-flex; align-items:center; gap:7px; }
+    .hero-foot b { width:6px; height:6px; border-radius:50%; background:var(--teal-bright); box-shadow:0 0 0 5px rgba(21,196,192,.12); }
+    .hero-panel { position:relative; min-height:410px; display:grid; place-items:center; }
+    .orbit { position:absolute; width:min(390px,90vw); aspect-ratio:1; border:1px solid rgba(140,232,225,.2); border-radius:50%; box-shadow:0 0 0 36px rgba(140,232,225,.035),0 0 0 76px rgba(140,232,225,.025); }
+    .orbit:before,.orbit:after { content:""; position:absolute; width:10px; height:10px; border-radius:50%; background:#8ce8e1; box-shadow:0 0 22px #8ce8e1; }
+    .orbit:before { top:13%; left:18%; }.orbit:after { bottom:18%; right:10%; }
+    .hub-card { position:relative; width:min(340px,100%); padding:30px; border:1px solid rgba(255,255,255,.17); border-radius:28px; background:linear-gradient(150deg,rgba(255,255,255,.13),rgba(255,255,255,.045)); box-shadow:0 32px 100px rgba(0,0,0,.22); backdrop-filter:blur(16px); }
+    .hub-mark { width:54px; height:54px; border-radius:16px; display:grid; place-items:center; color:#052b35; background:linear-gradient(135deg,#a5f2e9,#26c8c1); font-size:1.5rem; font-weight:900; box-shadow:0 10px 30px rgba(21,196,192,.2); }
+    .hub-card h3 { font-size:1.25rem; margin:20px 0 5px; letter-spacing:-.02em; }
+    .hub-card p { color:#c7dfe3; font-size:.9rem; margin:0; }
+    .hub-lines { margin-top:24px; display:grid; gap:10px; }
+    .hub-line { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; background:rgba(2,22,34,.35); border:1px solid rgba(255,255,255,.08); border-radius:12px; font-size:.79rem; color:#deeff0; }
+    .hub-line span:last-child { color:#8ce8e1; font-weight:800; }
+    .float-chip { position:absolute; padding:11px 15px; border-radius:14px; color:#dffaf8; background:#0a4653; border:1px solid rgba(140,232,225,.2); box-shadow:0 14px 36px rgba(0,0,0,.2); font-size:.78rem; font-weight:700; }
+    .float-chip.one { top:9%; right:2%; }.float-chip.two { bottom:12%; left:-1%; }
+
+    .trust-strip { background:#f0f6f7; border-bottom:1px solid #e2ecee; }
+    .trust-inner { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px 28px; padding:23px 0; }
+    .trust-label { color:#748792; font-size:.72rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+    .trust-items { display:flex; flex-wrap:wrap; gap:13px 28px; color:#244252; font-weight:750; font-size:.89rem; }
+    .trust-items span { display:inline-flex; align-items:center; gap:8px; }
+    .trust-items span:before { content:""; width:6px;height:6px;border-radius:50%;background:var(--teal); }
+    section { padding:94px 0; }
+    .section-head { max-width:720px; margin-bottom:42px; }
+    .kicker { color:var(--teal); font-size:.76rem; font-weight:850; letter-spacing:.16em; text-transform:uppercase; }
+    h2 { margin:11px 0 14px; font-size:clamp(2rem,4vw,3.25rem); line-height:1.12; letter-spacing:-.045em; color:var(--navy); }
+    .section-head p { margin:0; color:var(--muted); font-size:1.02rem; max-width:660px; }
+    .two-col { display:grid; grid-template-columns:1fr 1fr; align-items:center; gap:70px; }
+    .visual-panel { position:relative; min-height:430px; border-radius:28px; overflow:hidden; padding:34px; color:#fff; background:radial-gradient(circle at 80% 20%,rgba(140,232,225,.35),transparent 25%),linear-gradient(135deg,#0a3448,#087a83); box-shadow:var(--shadow); }
+    .visual-panel:after { content:""; position:absolute; right:-50px; bottom:-120px; width:330px;height:330px;border:1px solid rgba(255,255,255,.24);border-radius:50%;box-shadow:0 0 0 40px rgba(255,255,255,.05),0 0 0 80px rgba(255,255,255,.035); }
+    .visual-panel .big-word { display:block; font-size:clamp(3rem,6vw,5rem); font-weight:900; letter-spacing:-.07em; line-height:1; color:#a3f0e9; margin-top:65px; }
+    .visual-panel .small-label { color:#d4eeed; letter-spacing:.15em; text-transform:uppercase; font-size:.75rem; font-weight:800; }
+    .visual-panel .panel-bottom { position:absolute; bottom:32px; left:34px; right:34px; display:flex; justify-content:space-between; align-items:end; gap:16px; z-index:1; }
+    .visual-panel .panel-bottom strong { max-width:210px; font-size:1.15rem; line-height:1.25; }
+    .visual-panel .panel-bottom span { color:#bfe8e4; font-size:.78rem; text-align:right; }
+    .mission-copy p { color:var(--muted); margin:0 0 18px; }
+    .statement { margin-top:28px; padding:20px 22px; border-left:3px solid var(--teal-bright); background:#f2f8f8; border-radius:0 15px 15px 0; }
+    .statement strong { display:block; color:var(--navy); font-size:.8rem; text-transform:uppercase; letter-spacing:.1em; margin-bottom:6px; }
+    .statement p { margin:0; color:#3e5966; }
+
+    .solutions { background:var(--paper); }
+    .card-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+    .service-card { background:#fff; border:1px solid #e4ecef; border-radius:20px; padding:26px 22px; min-height:260px; box-shadow:0 8px 28px rgba(8,45,62,.035); transition:transform .22s,box-shadow .22s,border-color .22s; }
+    .service-card:hover { transform:translateY(-6px); box-shadow:var(--shadow); border-color:#b4d8d9; }
+    .service-icon { width:52px;height:52px;display:grid;place-items:center;border-radius:16px;background:#e8f7f6;color:#087b83;font-size:1.45rem;margin-bottom:22px; }
+    .service-card h3 { margin:0 0 10px; font-size:1.08rem; color:var(--navy); letter-spacing:-.02em; }
+    .service-card p { margin:0; color:var(--muted); font-size:.89rem; }
+    .tag-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:28px; }
+    .tag { background:#e9f3f4; border:1px solid #d5e6e8; color:#315563; padding:6px 11px; font-size:.76rem; font-weight:700; border-radius:999px; }
+
+    .process-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:0; border:1px solid var(--line); border-radius:22px; overflow:hidden; }
+    .process-step { padding:27px 22px; border-right:1px solid var(--line); background:#fff; }
+    .process-step:last-child { border-right:0; }
+    .step-num { width:35px;height:35px;border-radius:50%;display:grid;place-items:center;color:#087b83;background:#e7f7f5;font-size:.8rem;font-weight:900;margin-bottom:22px; }
+    .process-step h3 { color:var(--navy); font-size:1rem; margin:0 0 7px; }
+    .process-step p { margin:0; font-size:.83rem; color:var(--muted); }
+    .process-note { margin-top:18px; color:#6b7f89; font-size:.82rem; }
+
+    .sectors { background:#071c2d; color:#fff; position:relative; overflow:hidden; }
+    .sectors:after { content:""; position:absolute; width:500px;height:500px;border:1px solid rgba(140,232,225,.12);border-radius:50%;right:-220px;top:-230px;box-shadow:0 0 0 55px rgba(140,232,225,.025),0 0 0 110px rgba(140,232,225,.02); }
+    .sectors h2 { color:#fff; }.sectors .section-head p { color:#b8cdd3; }
+    .sector-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; position:relative; z-index:1; }
+    .sector-card { padding:24px; min-height:168px; border:1px solid rgba(255,255,255,.13); border-radius:18px; background:rgba(255,255,255,.045); transition:background .2s,transform .2s; }
+    .sector-card:hover { background:rgba(255,255,255,.09); transform:translateY(-4px); }
+    .sector-card .sector-emoji { font-size:1.55rem; }.sector-card h3 { color:#e9fbfa; margin:15px 0 5px; font-size:1rem; }.sector-card p { color:#abc2ca; font-size:.82rem; margin:0; }
+
+    .learning { background:#f4f8f9; }
+    .learning-layout { display:grid; grid-template-columns:.8fr 1.2fr; gap:55px; align-items:start; }
+    .learning-aside { position:sticky; top:115px; padding:29px; color:#fff; border-radius:22px; background:linear-gradient(145deg,#087b83,#063146); box-shadow:var(--shadow); }
+    .learning-aside .label { font-size:.72rem; color:#a8ece6; text-transform:uppercase; letter-spacing:.15em; font-weight:800; }
+    .learning-aside h3 { margin:12px 0 11px; font-size:1.7rem; letter-spacing:-.04em; line-height:1.15; }
+    .learning-aside p { color:#c8e2e5; font-size:.9rem; margin:0; }
+    .learning-aside .mini-line { height:1px; background:rgba(255,255,255,.18); margin:23px 0; }
+    .learning-aside ul { padding:0; list-style:none; display:grid; gap:11px; margin:0; color:#e0f3f2; font-size:.86rem; }
+    .learning-aside li:before { content:"✓"; margin-right:10px; color:#9ce9e3; font-weight:900; }
+    .learning-list { display:grid; gap:13px; }
+    .learning-item { display:grid; grid-template-columns:58px 1fr; gap:17px; padding:22px; background:#fff; border:1px solid #e1eaed; border-radius:18px; }
+    .learning-item .service-icon { margin:0; width:58px; height:58px; }
+    .learning-item h3 { margin:0 0 5px; color:var(--navy); font-size:1.02rem; }.learning-item p { margin:0; color:var(--muted); font-size:.88rem; }
+    .pathway { margin-top:24px; padding:23px; background:#fff; border:1px dashed #b7ced2; border-radius:18px; }
+    .pathway strong { color:var(--navy); }.pathway p { color:var(--muted); font-size:.88rem; margin:6px 0 0; }
+
+    .values-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:15px; }
+    .value-card { padding:24px 21px; border:1px solid var(--line); border-radius:18px; }
+    .value-card h3 { color:var(--navy); margin:0 0 9px; font-size:1.02rem; }.value-card p { color:var(--muted); margin:0; font-size:.86rem; }
+    .dual-banner { margin-top:48px; padding:33px 36px; border-radius:24px; background:linear-gradient(110deg,#e4f7f5,#eff6f8); display:flex; justify-content:space-between; align-items:center; gap:25px; }
+    .dual-banner h3 { color:var(--navy); font-size:1.55rem; letter-spacing:-.035em; margin:0 0 5px; }.dual-banner p { color:#58717c; margin:0; font-size:.92rem; max-width:690px; }
+
+    .leadership { background:#f4f8f9; }
+    .leaders { display:grid; grid-template-columns:repeat(3,1fr); gap:17px; }
+    .leader { padding:27px; background:#fff; border:1px solid #e2ebee; border-radius:20px; }
+    .leader-top { display:flex; align-items:center; gap:15px; margin-bottom:20px; }
+    .avatar { width:54px;height:54px; flex:0 0 54px; display:grid;place-items:center;border-radius:17px;background:linear-gradient(135deg,#0d8190,#0a3348);color:#a9f2eb;font-weight:900; font-size:1.05rem; }
+    .leader h3 { color:var(--navy); font-size:1.08rem; margin:0; }.leader .role { color:var(--teal); font-weight:800; font-size:.76rem; text-transform:uppercase; letter-spacing:.1em; }
+    .leader p { margin:0; color:var(--muted); font-size:.88rem; }
+    .leadership-note { margin-top:17px; color:#72858e; font-size:.82rem; }
+
+    .faq-grid { display:grid; grid-template-columns:.7fr 1.3fr; gap:55px; align-items:start; }
+    .faq-aside { color:var(--muted); font-size:.95rem; }.faq-list { display:grid; gap:10px; }
+    details { border:1px solid var(--line); border-radius:15px; background:#fff; padding:0 19px; }
+    summary { cursor:pointer; list-style:none; padding:18px 28px 18px 0; color:var(--navy); font-weight:750; position:relative; }
+    summary::-webkit-details-marker { display:none; }
+    summary:after { content:"+"; position:absolute; right:0; top:15px; color:var(--teal); font-size:1.3rem; }
+    details[open] summary:after { content:"−"; }
+    details p { color:var(--muted); margin:0 0 18px; font-size:.9rem; }
+
+    .contact { background:linear-gradient(140deg,#061725,#08364a 62%,#087c83); color:#fff; }
+    .contact h2 { color:#fff; }.contact .section-head p { color:#c6dce1; }
+    .contact-grid { display:grid; grid-template-columns:.8fr 1.2fr; gap:55px; align-items:start; }
+    .contact-info { padding:28px; border:1px solid rgba(255,255,255,.16); border-radius:20px; background:rgba(255,255,255,.055); }
+    .contact-info h3 { margin:0 0 10px; font-size:1.25rem; }.contact-info p { color:#c6dce1; font-size:.9rem; margin:0 0 21px; }
+    .contact-points { display:grid; gap:13px; color:#e2f2f3; font-size:.88rem; }.contact-points span { display:flex; align-items:center; gap:10px; }
+    .form-card { padding:30px; color:var(--ink); background:#fff; border-radius:22px; box-shadow:0 24px 70px rgba(0,0,0,.17); }
+    .form-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:22px; }
+    .form-tab { border:1px solid #dbe6e9; border-radius:999px; padding:8px 13px; background:#fff; color:#4b6470; font-size:.8rem; font-weight:800; }
+    .form-tab[aria-pressed="true"] { background:#e5f7f5; color:#087780; border-color:#a7deda; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .field { display:grid; gap:6px; }.field.full { grid-column:1/-1; }
+    .field label { color:#314b58; font-size:.78rem; font-weight:800; }
+    .field input,.field select,.field textarea { width:100%; border:1px solid #d5e1e5; border-radius:11px; padding:12px 13px; color:var(--ink); background:#fbfdfe; outline:0; }
+    .field input:focus,.field select:focus,.field textarea:focus { border-color:#0b9fa0; box-shadow:0 0 0 3px rgba(21,196,192,.13); }
+    .field textarea { min-height:112px; resize:vertical; }
+    .form-note { color:#788c95; font-size:.75rem; margin:12px 0 19px; }
+    .form-status { display:none; margin-top:15px; padding:13px; color:#285664; background:#eaf8f6; border:1px solid #ccece7; border-radius:12px; font-size:.83rem; }
+    .form-status.show { display:block; }.form-status button { border:0; background:none; color:#087780; font-weight:900; text-decoration:underline; padding:0; }
+    .footer { background:#04131f; color:#a9c0c9; padding:39px 0 24px; }
+    .footer-top { display:flex; justify-content:space-between; align-items:center; gap:25px; padding-bottom:28px; border-bottom:1px solid rgba(255,255,255,.1); }
+    .footer-brand { display:flex; align-items:center; gap:16px; }.footer-brand img { width:155px; height:55px; object-fit:contain; border-radius:4px; }.footer-brand span { color:#cfe0e5; font-size:.8rem; }
+    .footer-links { display:flex; flex-wrap:wrap; gap:18px; font-size:.82rem; }.footer-links a:hover { color:#91e7df; }
+    .footer-bottom { display:flex; align-items:center; justify-content:space-between; gap:18px; padding-top:21px; color:#7e99a4; font-size:.74rem; }
+    .speak-control { position:fixed; right:22px; bottom:22px; z-index:50; display:flex; align-items:center; gap:9px; padding:12px 16px; border:1px solid rgba(255,255,255,.1); border-radius:999px; background:#0a3949; color:#fff; box-shadow:0 12px 35px rgba(3,21,32,.3); font-size:.82rem; font-weight:800; }
+    .speak-control:hover { background:#0d5260; }.speak-control[aria-pressed="true"] { background:#0b7a80; }
+    .reveal { opacity:0; transform:translateY(18px); transition:opacity .65s ease,transform .65s ease; }.reveal.visible { opacity:1; transform:none; }
+    :focus-visible { outline:3px solid #40c9c0; outline-offset:3px; }
+    @media (max-width:1000px) {
+      .nav { gap:14px; font-size:.82rem; }.nav-cta .btn { padding:11px 15px; }
+      .hero-grid { gap:28px; }.card-grid { grid-template-columns:repeat(2,1fr); }.sector-grid { grid-template-columns:repeat(2,1fr); }
+      .process-grid { grid-template-columns:repeat(3,1fr); }.process-step:nth-child(3) { border-right:0; }.process-step:nth-child(-n+3) { border-bottom:1px solid var(--line); }
+      .values-grid { grid-template-columns:repeat(2,1fr); }
+    }
+    @media (max-width:760px) {
+      .container { width:min(100% - 32px,var(--max)); }.topline-inner { justify-content:center; text-align:center; }.topline-inner span:last-child { display:none; }
+      .nav-wrap { min-height:72px; }.brand { width:174px; flex-basis:174px; }.brand img { width:174px; height:62px; }
+      .menu-toggle { display:inline-grid; place-items:center; }.nav-cta { margin-left:auto; }.nav-cta .btn { display:none; }
+      .nav { display:none; position:fixed; inset:72px 0 0; padding:25px 28px 40px; background:#071c2d; flex-direction:column; align-items:stretch; gap:0; overflow-y:auto; font-size:1rem; }
+      .nav.open { display:flex; }.nav a { padding:16px 0; border-bottom:1px solid rgba(255,255,255,.09); }
+      .hero { padding:70px 0 62px; }.hero-grid { grid-template-columns:1fr; }.hero h1 { font-size:clamp(2.8rem,13vw,4.3rem); }.hero-panel { min-height:340px; }.orbit { width:280px; }.hub-card { width:min(310px,100%); }.float-chip.one { right:0; }.float-chip.two { left:0; }
+      section { padding:70px 0; }.two-col,.learning-layout,.faq-grid,.contact-grid { grid-template-columns:1fr; gap:30px; }.visual-panel { min-height:330px; }.learning-aside { position:relative; top:auto; }
+      .leaders { grid-template-columns:1fr; }.process-grid { grid-template-columns:1fr 1fr; }.process-step { border-bottom:1px solid var(--line); }.process-step:nth-child(odd) { border-right:1px solid var(--line); }.process-step:nth-child(even) { border-right:0; }.process-step:last-child { grid-column:1/-1; border-bottom:0; }
+      .dual-banner { flex-direction:column; align-items:flex-start; padding:27px; }.footer-top,.footer-bottom { flex-direction:column; align-items:flex-start; }.speak-control { right:13px; bottom:13px; padding:11px 13px; }
+    }
+    @media (max-width:480px) {
+      .hero-actions .btn { width:100%; }.trust-inner { align-items:flex-start; }.trust-items { gap:10px 15px; font-size:.8rem; }
+      .card-grid,.sector-grid,.values-grid { grid-template-columns:1fr; }.service-card { min-height:unset; }.process-grid { grid-template-columns:1fr; }.process-step,.process-step:nth-child(odd),.process-step:nth-child(even) { border-right:0; border-bottom:1px solid var(--line); }.process-step:last-child { grid-column:auto; border-bottom:0; }
+      .learning-item { grid-template-columns:48px 1fr; padding:17px; gap:13px; }.learning-item .service-icon { width:48px;height:48px; }.form-card { padding:21px; }.form-grid { grid-template-columns:1fr; }.field.full { grid-column:auto; }
+      .footer-brand { align-items:flex-start; flex-direction:column; gap:9px; }
+    }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; animation-duration:.01ms!important; transition-duration:.01ms!important; }.reveal { opacity:1; transform:none; } }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="topline"><div class="container topline-inner"><span><strong>EVOLVE</strong> · Technology Solutions Hub</span><span>AI solutions · Digital skills · Practical innovation</span></div></div>
+  <header class="header">
+    <div class="container nav-wrap">
+      <a class="brand" href="#home" aria-label="Evolve home"><img src="assets/evolve-logo.jpg" alt="Evolve Technology Solutions Hub logo" /></a>
+      <nav class="nav" id="site-nav" aria-label="Main navigation">
+        <a href="#home">Home</a><a href="#solutions">AI Solutions</a><a href="pricing.html">Pricing</a><a href="courses.html">Academy</a><a href="#sectors">Industries</a><a href="#about">About</a><a href="#leadership">Leadership</a><a href="portal.html">Portal</a><a href="#contact">Contact</a>
+      </nav>
+      <div class="nav-cta"><a class="btn btn-primary" href="#contact">Start a conversation <span aria-hidden="true">↗</span></a><button class="menu-toggle" id="menu-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="site-nav">☰</button></div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="home" data-speak="hero">
+      <div class="container hero-grid">
+        <div class="reveal">
+          <div class="eyebrow">AI empowerment & solutions hub</div>
+          <h1>Technology that moves business <span>forward.</span></h1>
+          <p class="hero-copy">Evolve brings enterprise-focused AI solutions and practical technology education together—helping organisations improve how they work while helping tomorrow’s talent build the skills to shape what comes next.</p>
+          <div class="hero-actions"><a class="btn btn-primary" href="#solutions">Explore our solutions <span aria-hidden="true">→</span></a><a class="btn btn-outline" href="#learning">Discover our learning programmes</a></div>
+          <div class="hero-foot"><span><b></b> Enterprise innovation</span><span><b></b> Skills for the digital economy</span><span><b></b> Responsible growth</span></div>
+        </div>
+        <div class="hero-panel reveal" aria-label="Evolve's two connected areas of focus">
+          <div class="orbit"></div><div class="float-chip one">AI · Data · Automation</div><div class="float-chip two">Talent · Training · Opportunity</div>
+          <div class="hub-card">
+            <div class="hub-mark">E</div><h3>One ecosystem. Two engines.</h3><p>Connecting business transformation with the development of capable technology talent.</p>
+            <div class="hub-lines"><div class="hub-line"><span>Enterprise solutions</span><span>01</span></div><div class="hub-line"><span>Education & training</span><span>02</span></div><div class="hub-line"><span>Research & innovation</span><span>03</span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="trust-strip"><div class="container trust-inner"><div class="trust-label">Areas we serve</div><div class="trust-items"><span>Healthcare</span><span>Agriculture</span><span>Finance</span><span>Logistics</span><span>Public sector</span><span>Education</span></div></div></div>
+
+    <section id="about" data-speak="about">
+      <div class="container two-col">
+        <div class="visual-panel reveal"><span class="small-label">Our purpose</span><span class="big-word">EVOLVE.</span><div class="panel-bottom"><strong>Innovating AI solutions. Empowering tomorrow’s talent.</strong><span>Business impact<br/>meets human potential</span></div></div>
+        <div class="mission-copy reveal"><div class="kicker">Who we are</div><h2>Progress is stronger when people grow with technology.</h2><p>Evolve is designed around a dual mission: equip businesses with tailored AI-enabled tools that improve efficiency and decision-making, while expanding access to practical technology education for young people, students and working professionals.</p><p>Our enterprise and education divisions are designed to reinforce one another. Real-world business challenges inform learning, and emerging talent brings fresh thinking into the innovation process.</p>
+          <div class="statement"><strong>Our vision</strong><p>To redefine the future of technology by bringing high-impact AI solutions together with community-driven education.</p></div>
+          <div class="statement"><strong>Our mission</strong><p>Empower businesses through tailored technology, and widen access to the skills required to participate in the digital economy.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="solutions" id="solutions" data-speak="solutions">
+      <div class="container">
+        <div class="section-head reveal"><div class="kicker">Enterprise solutions</div><h2>Make complex work simpler, smarter and more connected.</h2><p>We shape technology around the challenge—not the other way around. Our solution areas cover intelligent software, actionable data, digital protection and sector-specific applications.</p></div>
+        <div class="card-grid">
+          <article class="service-card reveal"><div class="service-icon">⌘</div><h3>Custom AI software</h3><p>Bespoke software designed around business workflows, from task automation to decision-support tools and predictive applications.</p></article>
+          <article class="service-card reveal"><div class="service-icon">▥</div><h3>Data analytics platforms</h3><p>Turn complex datasets into clearer insight through data integration, visualisation, statistical analysis and forecasting.</p></article>
+          <article class="service-card reveal"><div class="service-icon">⌑</div><h3>Cybersecurity & risk tools</h3><p>Explore AI-assisted monitoring, vulnerability identification, threat detection, incident response and risk assessment capabilities.</p></article>
+          <article class="service-card reveal"><div class="service-icon">✳</div><h3>Industry-specific AI</h3><p>Purpose-built applications for sector needs, with attention to scalability, interoperability and existing workflows.</p></article>
+        </div>
+        <div class="tag-row"><span class="tag">Process optimisation</span><span class="tag">Predictive analytics</span><span class="tag">Cloud architecture</span><span class="tag">Automation</span><span class="tag">Decision support</span><span class="tag">Applied AI research</span></div>
+      </div>
+    </section>
+
+    <section id="approach" data-speak="approach">
+      <div class="container">
+        <div class="section-head reveal"><div class="kicker">How we work</div><h2>Built around your goals. Improved through collaboration.</h2><p>Our proposed delivery approach uses agile product development and continuous feedback, so solutions can evolve as needs, data and technology change.</p></div>
+        <div class="process-grid reveal">
+          <div class="process-step"><div class="step-num">01</div><h3>Discover</h3><p>Understand your operations, users, constraints and the opportunity to solve.</p></div>
+          <div class="process-step"><div class="step-num">02</div><h3>Design</h3><p>Shape a solution architecture and delivery plan around the requirements.</p></div>
+          <div class="process-step"><div class="step-num">03</div><h3>Develop</h3><p>Build iteratively, validate assumptions and incorporate regular feedback.</p></div>
+          <div class="process-step"><div class="step-num">04</div><h3>Deploy</h3><p>Integrate into the operating environment with attention to security and reliability.</p></div>
+          <div class="process-step"><div class="step-num">05</div><h3>Improve</h3><p>Support, learn from use and refine the solution over time.</p></div>
+        </div>
+        <p class="process-note">The proposal describes two-week development sprints, continuous integration, cloud infrastructure and edge processing where required.</p>
+      </div>
+    </section>
+
+    <section class="sectors" id="sectors" data-speak="sectors">
+      <div class="container">
+        <div class="section-head reveal"><div class="kicker">Where we focus</div><h2>Applied technology for real-world sectors.</h2><p>We focus on areas where better information, automation and prediction can support more effective decisions and operations.</p></div>
+        <div class="sector-grid">
+          <article class="sector-card reveal"><div class="sector-emoji">✚</div><h3>Healthcare</h3><p>Explore AI-supported diagnostics, insights and personalised planning applications.</p><a class="btn btn-outline sector-explore" href="sector-solutions.html?sector=healthcare" aria-label="Explore Healthcare solutions">Explore solutions →</a></article>
+          <article class="sector-card reveal"><div class="sector-emoji">⌁</div><h3>Agriculture</h3><p>Precision agriculture concepts, farm data insights and crop-yield prediction.</p><a class="btn btn-outline sector-explore" href="sector-solutions.html?sector=agriculture" aria-label="Explore Agriculture solutions">Explore solutions →</a></article>
+          <article class="sector-card reveal"><div class="sector-emoji">◈</div><h3>Finance</h3><p>Data-led decision support, fraud detection and automated risk-management concepts.</p><a class="btn btn-outline sector-explore" href="sector-solutions.html?sector=finance" aria-label="Explore Finance solutions">Explore solutions →</a></article>
+          <article class="sector-card reveal"><div class="sector-emoji">↗</div><h3>Transport & logistics</h3><p>Route optimisation, operational analytics and connected workflow opportunities.</p><a class="btn btn-outline sector-explore" href="sector-solutions.html?sector=transport" aria-label="Explore Transport & logistics solutions">Explore solutions →</a></article>
+          <article class="sector-card reveal"><div class="sector-emoji">▤</div><h3>Manufacturing</h3><p>Process optimisation, operational monitoring and predictive insight.</p><a class="btn btn-outline sector-explore" href="sector-solutions.html?sector=manufacturing" aria-label="Explore Manufacturing solutions">Explore solutions →</a></article>
+          <article class="sector-card reveal"><div class="sector-emoji">⌂</div><h3>Government & public sector</h3><p>Automation and analytics to support responsive, transparent public services.</p><a class="btn btn-outline sector-explore" href="sector-solutions.html?sector=public" aria-label="Explore Government & public sector solutions">Explore solutions →</a></article>
+          <article class="sector-card reveal"><div class="sector-emoji">◎</div><h3>Education</h3><p>Digital learning, skills development and technology-enabled learning support.</p><a class="btn btn-outline sector-explore" href="sector-solutions.html?sector=education" aria-label="Explore Education solutions">Explore solutions →</a></article>
+          <article class="sector-card reveal"><div class="sector-emoji">▧</div><h3>Growing organisations</h3><p>Scalable digital tools for organisations ready to modernise their operations.</p><a class="btn btn-outline sector-explore" href="sector-solutions.html?sector=organisations" aria-label="Explore Growing organisations solutions">Explore solutions →</a></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="learning" id="learning" data-speak="learning">
+      <div class="container">
+        <div class="section-head reveal"><div class="kicker">Education & training</div><h2>Learn by doing. Build skills that move with the future.</h2><p>Our learning division is designed to make technology education practical, modular and accessible—from first steps in coding to applied AI and data science.</p></div>
+        <div class="learning-layout">
+          <aside class="learning-aside reveal"><div class="label">The Evolve learning model</div><h3>Knowledge becomes capability through practice.</h3><p>Programmes combine guided instruction with projects, collaboration and real-world application.</p><div class="mini-line"></div><ul><li>Practical, project-based learning</li><li>Modular progression by skill level</li><li>Mentorship and career guidance</li><li>Links to industry challenges</li></ul></aside>
+          <div class="learning-list">
+            <article class="learning-item reveal"><div class="service-icon">⌁</div><div><h3>Boot camps & workshops</h3><p>Intensive, hands-on sessions for beginners and professionals looking to strengthen their understanding of AI, coding and data science.</p></div></article>
+            <article class="learning-item reveal"><div class="service-icon">▣</div><div><h3>Online courses & webinars</h3><p>Flexible learning with opportunities for live question sessions, coding practice and project feedback.</p></div></article>
+            <article class="learning-item reveal"><div class="service-icon">↗</div><div><h3>Internships & apprenticeships</h3><p>Practical pathways for students and early-career professionals to gain experience through project work and partner opportunities.</p></div></article>
+            <article class="learning-item reveal"><div class="service-icon">✳</div><div><h3>Hackathons & competitions</h3><p>Collaborative challenges that encourage creative problem-solving, teamwork and applied learning.</p></div></article>
+            <article class="learning-item reveal"><div class="service-icon">◉</div><div><h3>Mentorship & career guidance</h3><p>Guidance from experienced practitioners to help learners navigate career choices, industry expectations and professional networks.</p></div></article>
+            <div class="pathway reveal"><strong>A progressive learning pathway</strong><p>Foundational programming and data analytics → applied AI and machine learning → advanced topics such as neural networks and deep learning. Course availability, schedules and entry requirements can be confirmed with the Evolve team.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="values" data-speak="values">
+      <div class="container">
+        <div class="section-head reveal"><div class="kicker">What guides us</div><h2>Our values are part of the product.</h2><p>Technology should be useful, accessible and built with care. These principles guide how we develop solutions and create learning opportunities.</p></div>
+        <div class="values-grid">
+          <article class="value-card reveal"><h3>01 · Innovation</h3><p>Explore new possibilities, invest in research and adapt to emerging challenges.</p></article>
+          <article class="value-card reveal"><h3>02 · Engagement</h3><p>Build inclusive communities and make opportunities reachable across different backgrounds.</p></article>
+          <article class="value-card reveal"><h3>03 · Excellence</h3><p>Prioritise quality in software development, learning delivery and customer support.</p></article>
+          <article class="value-card reveal"><h3>04 · Sustainability</h3><p>Balance long-term organisational strength with responsible practices and meaningful social impact.</p></article>
+        </div>
+        <div class="dual-banner reveal"><div><h3>Business transformation and talent development—together.</h3><p>Our integrated model connects enterprise challenges with hands-on learning, helping keep skills relevant while bringing new perspectives into technology development.</p></div><a class="btn btn-dark" href="#contact">Talk with Evolve <span aria-hidden="true">→</span></a></div>
+      </div>
+    </section>
+
+    <section class="leadership" id="leadership" data-speak="leadership">
+      <div class="container">
+        <div class="section-head reveal"><div class="kicker">Leadership</div><h2>Guided by strategy, operations and technology.</h2><p>The leadership roles below are the named appointments presented in the business proposal.</p></div>
+        <div class="leaders">
+          <article class="leader reveal"><div class="leader-top"><div class="avatar">GO</div><div><h3>Gideon Osei Ompong</h3><div class="role">Chief Executive Officer</div></div></div><p>Leads strategic direction, partnership development and the organisation’s business and community objectives.</p></article>
+          <article class="leader reveal"><div class="leader-top"><div class="avatar">VV</div><div><h3>Prof. Dr. Vijayakumar Varadarajan</h3><div class="role">Chief Operating Officer</div></div></div><p>Oversees day-to-day operations and coordinates execution across the organisation’s divisions and teams.</p></article>
+          <article class="leader reveal"><div class="leader-top"><div class="avatar">SK</div><div><h3>Subham Kumar</h3><div class="role">Chief Technology Officer</div></div></div><p>Leads product development, research and development initiatives, and the organisation’s technology direction.</p></article>
+        </div>
+        
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="container faq-grid">
+        <div class="faq-aside reveal"><div class="kicker">Quick answers</div><h2>Start with what you need.</h2><p>Whether you are exploring an AI project, considering training or looking for a partnership, these answers explain the two parts of Evolve’s model.</p><a class="btn btn-dark" href="#contact">Send an enquiry <span aria-hidden="true">→</span></a></div>
+        <div class="faq-list reveal">
+          <details><summary>What does Evolve do?</summary><p>Evolve brings together enterprise AI and technology solutions with education and training programmes focused on practical digital skills.</p></details>
+          <details><summary>What kinds of business challenges can you explore?</summary><p>The proposal covers custom AI software, data analytics platforms, cybersecurity and risk-management tools, and industry-specific applications. A discovery conversation helps define fit and scope.</p></details>
+          <details><summary>Who are the training programmes designed for?</summary><p>Programmes are designed for youth, students, beginners and professionals, with corporate training options for organisations seeking to upskill teams.</p></details>
+          <details><summary>Can organisations partner with Evolve?</summary><p>The proposal identifies collaboration with academic institutions, technology partners, government agencies and community organisations as an important part of the model. Use the enquiry form to introduce a potential partnership.</p></details>
+          <details><summary>Are course dates and fees published here?</summary><p>No. The proposal does not provide confirmed course dates, schedules or tuition fees. Contact Evolve to enquire about programme availability and details.</p></details>
+          <details><summary>Does Evolve offer a ready-made AI product catalogue?</summary><p>This website presents the solution capabilities described in the proposal. Specific products, technical specifications and deployment options should be confirmed through a project discussion.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact" id="contact" data-speak="contact">
+      <div class="container">
+        <div class="section-head reveal"><div class="kicker">Let’s build what’s next</div><h2>Tell us what you’re working towards.</h2><p>Share a little about your organisation, learning goals or partnership idea. The form below prepares an enquiry that you can copy and send to the Evolve team.</p></div>
+        <div class="contact-grid">
+          <div class="contact-info reveal"><h3>One conversation can start a new direction.</h3><p>Talk with us about a technology challenge, a training opportunity or a collaboration that can create lasting value.</p><div class="contact-points"><span>✦ Enterprise AI & digital transformation</span><span>✦ Training, workshops & mentorship</span><span>✦ Institutional & industry partnerships</span><span>✦ Research and innovation opportunities</span></div></div>
+          <div class="form-card reveal">
+            <div class="form-tabs" role="group" aria-label="Enquiry type"><button class="form-tab" type="button" data-kind="Business solution" aria-pressed="true">Business solution</button><button class="form-tab" type="button" data-kind="Training" aria-pressed="false">Training</button><button class="form-tab" type="button" data-kind="Partnership" aria-pressed="false">Partnership</button></div>
+            <form id="enquiry-form">
+              <input type="hidden" id="enquiry-kind" value="Business solution" />
+              <div class="form-grid">
+                <div class="field"><label for="name">Full name</label><input id="name" name="name" required autocomplete="name" placeholder="Your name" /></div>
+                <div class="field"><label for="email">Email address</label><input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com" /></div>
+                <div class="field"><label for="organisation">Organisation <span style="font-weight:500;color:#84969e">(optional)</span></label><input id="organisation" name="organisation" autocomplete="organization" placeholder="Company, school or institution" /></div>
+                <div class="field"><label for="interest">Area of interest</label><select id="interest" name="interest"><option>Custom AI software</option><option>Data analytics</option><option>Cybersecurity & risk</option><option>Industry-specific AI</option><option>Boot camps & workshops</option><option>Online learning</option><option>Internships & mentorship</option><option>Institutional partnership</option><option>Other</option></select></div>
+                <div class="field full"><label for="message">How can we help?</label><textarea id="message" name="message" required placeholder="Tell us about your goals, challenge or idea..."></textarea></div>
+              </div>
+              <p class="form-note">Privacy note: this prototype does not transmit or store your details on a server. It prepares a message on your device for you to copy. A live site should connect this form to an approved Evolve inbox or CRM before launch.</p>
+              <button class="btn btn-dark" type="submit">Prepare my enquiry <span aria-hidden="true">→</span></button>
+              <div class="form-status" id="form-status" role="status" aria-live="polite"></div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <section class="section" id="platform-cta"><div class="container"><div class="section-head"><div class="kicker">Evolve digital platform</div><h2>One hub for clients, learners and our team.</h2><p>Explore the Evolve Academy, learner portal and administration workspace.</p></div><div class="cards"><a class="card" href="courses.html"><h3>Evolve Academy</h3><p>Explore training pathways, course catalogue and learning opportunities.</p><span class="btn">Browse courses →</span></a><a class="card" href="portal.html"><h3>Student & Client Portal</h3><p>Demo portal experience for registration, applications and service enquiries.</p><span class="btn">Open portal →</span></a><a class="card" href="admin.html"><h3>Administration</h3><p>Preview the internal dashboard, course management and enquiry pipeline.</p><span class="btn">Admin preview →</span></a></div></div></section>
+      <div class="footer-top"><div class="footer-brand"><img src="assets/evolve-logo.jpg" alt="Evolve Technology Solutions Hub" /><span>Innovating AI Solutions, Empowering Tomorrow’s Talent.</span></div><div class="footer-links"><a href="#solutions">Solutions</a><a href="#learning">Learning</a><a href="#about">About</a><a href="#leadership">Leadership</a><a href="#contact">Contact</a></div></div>
+      <div class="footer-bottom"><span>© <span id="year"></span> Evolve Technology Solutions Hub. All rights reserved.</span><span>Built around innovation, engagement, excellence and sustainability.</span></div>
+    </div>
+  </footer>
+
+  <button class="speak-control" id="speak-button" type="button" aria-pressed="false" aria-label="Read a summary of this page aloud"><span aria-hidden="true">◖))</span><span id="speak-label">Listen to this page</span></button>
+
+  <script>
+    (() => {
+      const menuButton = document.getElementById('menu-toggle');
+      const nav = document.getElementById('site-nav');
+      menuButton.addEventListener('click', () => {
+        const open = nav.classList.toggle('open');
+        menuButton.setAttribute('aria-expanded', String(open));
+        menuButton.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+        menuButton.textContent = open ? '×' : '☰';
+        document.body.classList.toggle('menu-open', open);
+      });
+      nav.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
+        nav.classList.remove('open'); menuButton.setAttribute('aria-expanded','false'); menuButton.setAttribute('aria-label','Open navigation'); menuButton.textContent='☰'; document.body.classList.remove('menu-open');
+      }));
+
+      // Progressive reveal; content remains visible when IntersectionObserver is unavailable.
+      const revealItems = document.querySelectorAll('.reveal');
+      if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        const observer = new IntersectionObserver(entries => entries.forEach(entry => {
+          if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); }
+        }), { threshold: 0.12 });
+        revealItems.forEach(item => observer.observe(item));
+      } else revealItems.forEach(item => item.classList.add('visible'));
+
+      // Enquiry type selector.
+      const kindInput = document.getElementById('enquiry-kind');
+      document.querySelectorAll('.form-tab').forEach(tab => tab.addEventListener('click', () => {
+        document.querySelectorAll('.form-tab').forEach(item => item.setAttribute('aria-pressed','false'));
+        tab.setAttribute('aria-pressed','true'); kindInput.value = tab.dataset.kind;
+        const interest = document.getElementById('interest');
+        if (tab.dataset.kind === 'Training') interest.value = 'Boot camps & workshops';
+        else if (tab.dataset.kind === 'Partnership') interest.value = 'Institutional partnership';
+        else interest.value = 'Custom AI software';
+      }));
+
+      // The form deliberately stays local until the owner supplies an approved destination.
+      const form = document.getElementById('enquiry-form');
+      const status = document.getElementById('form-status');
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (!form.reportValidity()) return;
+        const data = new FormData(form);
+        const message = [
+          'EVOLVE — WEBSITE ENQUIRY',
+          'Enquiry type: ' + kindInput.value,
+          'Name: ' + data.get('name'),
+          'Email: ' + data.get('email'),
+          'Organisation: ' + (data.get('organisation') || 'Not provided'),
+          'Area of interest: ' + data.get('interest'),
+          '', 'Message:', data.get('message')
+        ].join('\n');
+        status.classList.add('show');
+        status.innerHTML = 'Your enquiry is ready. Copy it and send it to the official Evolve contact address. This demo has not sent your details anywhere. <br/><br/><button type="button" id="copy-enquiry">Copy enquiry text</button>';
+        document.getElementById('copy-enquiry').addEventListener('click', async () => {
+          try { await navigator.clipboard.writeText(message); document.getElementById('copy-enquiry').textContent = 'Copied'; }
+          catch (_) {
+            const area = document.createElement('textarea'); area.value = message; document.body.appendChild(area); area.select();
+            try { document.execCommand('copy'); document.getElementById('copy-enquiry').textContent = 'Copied'; }
+            catch (err) { status.textContent = message; }
+            area.remove();
+          }
+        });
+      });
+
+      // Spoken summary. Speech is generated by the visitor's browser; no audio is uploaded.
+      const speakButton = document.getElementById('speak-button');
+      const speakLabel = document.getElementById('speak-label');
+      const speechText = 'Welcome to Evolve Technology Solutions Hub. Our tagline is Innovating AI Solutions, Empowering Tomorrow’s Talent. Evolve brings enterprise AI solutions and practical technology education together. Our enterprise focus includes custom AI software, data analytics platforms, cybersecurity and risk-management tools, and industry-specific applications. Our education programmes include boot camps, workshops, online courses, internships, hackathons, mentorship and career guidance. We focus on healthcare, agriculture, finance, transport and logistics, manufacturing, public services and education. Our vision is to connect high-impact technology with community-driven education. Our values are innovation, engagement, excellence and sustainability. Contact Evolve to discuss a business challenge, a learning goal or a partnership.';
+      const stopSpeech = () => { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); speakButton.setAttribute('aria-pressed','false'); speakLabel.textContent='Listen to this page'; };
+      speakButton.addEventListener('click', () => {
+        if (!('speechSynthesis' in window)) { speakLabel.textContent='Speech unavailable'; return; }
+        if (window.speechSynthesis.speaking) { stopSpeech(); return; }
+        const utterance = new SpeechSynthesisUtterance(speechText);
+        utterance.rate = 0.94; utterance.pitch = 1; utterance.lang = document.documentElement.lang || 'en';
+        utterance.onend = stopSpeech; utterance.onerror = stopSpeech;
+        window.speechSynthesis.speak(utterance); speakButton.setAttribute('aria-pressed','true'); speakLabel.textContent='Stop listening';
+      });
+      window.addEventListener('pagehide', stopSpeech);
+      document.getElementById('year').textContent = new Date().getFullYear();
+      if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+        navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+      }
+    })();
+  </script>
+
+  <div id="evolve-access" class="access-dock" role="region" aria-label="Accessibility and voice controls">
+    <button id="voice-nav" class="access-btn" aria-pressed="false">🎙 Voice navigation</button>
+    <button id="read-page" class="access-btn">🔊 Read aloud</button>
+    <select id="voice-language" aria-label="Speech language"><option value="en-US">English</option><option value="fr-FR">Français</option><option value="es-ES">Español</option><option value="pt-PT">Português</option><option value="ar-SA">العربية</option><option value="hi-IN">हिन्दी</option><option value="zh-CN">中文</option><option value="de-DE">Deutsch</option><option value="sw-KE">Kiswahili</option></select>
+    <button id="help-chat-toggle" aria-expanded="false">💬 Platform help</button>
+  </div>
+  <div id="help-chat" class="help-chat" hidden aria-label="Evolve platform navigation assistant">
+    <div class="help-chat-head"><strong>Evolve Navigation Assistant</strong><button id="help-chat-close" aria-label="Close">×</button></div>
+    <p class="help-chat-intro">I can help you navigate Evolve and explain its features. I only answer questions about using the platform.</p>
+    <div id="help-chat-log" class="help-chat-log" role="log" aria-live="polite"><p class="bot-msg">Ask how to find a course, explore a solution, apply for an internship, or use the portal.</p></div>
+    <form id="help-chat-form"><input id="help-chat-input" aria-label="Ask about navigating Evolve" placeholder="How do I find courses?" autocomplete="off"><button type="submit">Send</button></form>
+  </div>
+  <style>
+  .access-dock{position:fixed;z-index:9999;bottom:12px;right:12px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;max-width:calc(100vw - 24px);padding:9px;background:rgba(5,24,39,.96);border:1px solid rgba(140,232,225,.25);border-radius:16px;box-shadow:0 10px 40px #0003}
+  .access-dock button,.access-dock select{border:1px solid #3d6675;background:#0c354b;color:#fff;border-radius:10px;padding:9px 11px;font-weight:650;font-size:.8rem;min-height:42px}
+  .access-dock button:focus-visible,.access-dock select:focus-visible,#help-chat input:focus-visible{outline:3px solid #8ce8e1;outline-offset:2px}
+  .help-chat{position:fixed;z-index:9998;bottom:94px;right:12px;width:min(360px,calc(100vw - 24px));background:#fff;border:1px solid #b8d8dc;border-radius:18px;box-shadow:0 20px 60px #0003;overflow:hidden;color:#102433}
+  .help-chat-head{background:#082b40;color:#fff;padding:13px 16px;display:flex;justify-content:space-between;align-items:center}.help-chat-head button{background:none;border:0;color:#fff;font-size:1.5rem}
+  .help-chat-intro{padding:12px 14px;margin:0;font-size:.84rem;color:#5a707d;border-bottom:1px solid #e4edf0}.help-chat-log{padding:12px;overflow:auto;max-height:38vh;font-size:.88rem}.bot-msg,.user-msg{padding:10px;border-radius:12px;margin:7px 0;white-space:pre-wrap}.bot-msg{background:#eaf5f5}.user-msg{background:#0a364b;color:#fff;text-align:right}
+  #help-chat-form{display:flex;gap:6px;padding:10px;border-top:1px solid #e3ecef}#help-chat-form input{flex:1;min-width:0;padding:10px;border:1px solid #c9dbe0;border-radius:10px}#help-chat-form button{border:0;border-radius:10px;padding:0 14px;background:#0a7180;color:#fff;font-weight:700}
+  .sector-explore{margin-top:15px;display:inline-flex;padding:9px 13px;font-size:.8rem;border-color:#3b7180;color:#fff}.sector-card{cursor:pointer}
+  @media(max-width:620px){.access-dock{left:8px;right:8px;justify-content:center;bottom:8px}.access-dock button,.access-dock select{font-size:.73rem;padding:8px}.help-chat{bottom:100px;right:8px}.sector-explore{color:#087780;border-color:#b5d7db}}
+  </style>
+  <script>
+  (()=>{
+    const voiceBtn=document.getElementById('voice-nav'),readBtn=document.getElementById('read-page'),langSel=document.getElementById('voice-language');
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null,active=false;
+    const chatToggle=document.getElementById('help-chat-toggle'),chat=document.getElementById('help-chat'),close=document.getElementById('help-chat-close'),form=document.getElementById('help-chat-form'),input=document.getElementById('help-chat-input'),log=document.getElementById('help-chat-log');
+    function speak(txt){if(!('speechSynthesis'in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(txt);u.lang=langSel.value;speechSynthesis.speak(u)}
+    function intent(t){const q=t.toLowerCase();if(/home|homepage|main page/.test(q)){location.href='index.html';return'Opening home.'}if(/course|academy|learn|student/.test(q)){location.href='courses.html';return'Opening the Academy.'}if(/portal|register|registration|sign up/.test(q)){location.href='portal.html';return'Opening learner portal.'}if(/admin|dashboard|staff/.test(q))return'Administration is restricted to authorized staff. Staff sign-in will be enabled when the secure backend is connected.';if(/contact|enquir|email/.test(q)){location.href='index.html#contact';return'Opening contact.'}const maps=[['health|hospital|clinic','healthcare','healthcare'],['agric|farm','agriculture','agriculture'],['finance|bank|fraud','finance','finance'],['transport|logistics|route','transport','transport'],['manufactur|factory','manufacturing','manufacturing'],['government|public sector','public','public'],['education|school','education','education']];for(const [rx,slug,label] of maps){if(new RegExp(rx).test(q)){location.href='sector-solutions.html?sector='+slug;return'Opening '+label+' solutions.'}}return'Try: open the Academy, find healthcare solutions, go to the learner portal, or contact Evolve.'}
+    voiceBtn.addEventListener('click',()=>{if(!SR){speak('Speech recognition is not supported in this browser. Try another browser or use keyboard navigation.');return}if(active){rec.stop();return}rec=new SR();rec.lang=langSel.value;rec.onresult=e=>speak(intent(e.results[0][0].transcript));rec.onend=()=>{active=false;voiceBtn.setAttribute('aria-pressed','false');voiceBtn.textContent='🎙 Voice navigation'};rec.onerror=()=>speak('Voice input failed. Please try again.');active=true;voiceBtn.setAttribute('aria-pressed','true');voiceBtn.textContent='Stop voice navigation';rec.start()});
+    readBtn.addEventListener('click',()=>speak((document.querySelector('main')?.innerText||document.body.innerText).slice(0,7000)));
+    chatToggle.addEventListener('click',()=>{chat.hidden=!chat.hidden;chatToggle.setAttribute('aria-expanded',String(!chat.hidden));if(!chat.hidden)input.focus()});close.addEventListener('click',()=>{chat.hidden=true;chatToggle.setAttribute('aria-expanded','false')});
+    form.addEventListener('submit',e=>{e.preventDefault();const q=input.value.trim();if(!q)return;const u=document.createElement('p');u.className='user-msg';u.textContent=q;log.append(u);const a=document.createElement('p');a.className='bot-msg';a.textContent=intent(q);log.append(a);input.value='';log.scrollTop=log.scrollHeight;speak(a.textContent)});document.addEventListener('keydown',e=>{if(e.key==='Escape'){chat.hidden=true;if(active&&rec)rec.stop()}})
+  })();
+  </script>
+
+<div class="sector-explore-links" aria-label="Sector guides"><a href="sector-solutions.html?sector=healthcare">Healthcare guide</a> · <a href="sector-solutions.html?sector=agriculture">Agriculture guide</a> · <a href="sector-solutions.html?sector=finance">Finance guide</a> · <a href="pricing.html">Pricing</a></div></body>
+</html>
