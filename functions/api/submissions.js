@@ -1,3 +1,4 @@
+import { clientFromRequest } from "../lib/client-auth.js";
 const MAX_BODY_BYTES = 12_000;
 const MAX_FIELD = 4000;
 
@@ -78,13 +79,31 @@ export async function onRequestPost({ request, env }) {
   }
 
   try {
+    let accountId = null;
+    let submittedName = name;
+    let submittedEmail = email;
+    let submittedOrganisation = organisation;
+    if (type === "client_request") {
+      const sessionId = await clientFromRequest(request, env);
+      if (sessionId) {
+        const account = await env.DB.prepare(
+          "SELECT id, full_name, email, organisation FROM client_accounts WHERE id = ?"
+        ).bind(sessionId).first();
+        if (account) {
+          accountId = account.id;
+          submittedName = account.full_name;
+          submittedEmail = account.email;
+          submittedOrganisation = account.organisation || organisation;
+        }
+      }
+    }
     await env.DB.prepare(`
       INSERT INTO submissions
-        (type, name, email, organisation, interest, service, currency, details, message, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (type, name, email, organisation, interest, service, currency, details, message, created_at, client_account_id, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Received')
     `).bind(
-      type, name, email, organisation, interest, service, currency,
-      details, message, new Date().toISOString()
+      type, submittedName, submittedEmail, submittedOrganisation, interest, service, currency,
+      details, message, new Date().toISOString(), accountId
     ).run();
     return json({ ok: true, message: "Thank you. Your submission has been received by Evolve." }, 201);
   } catch (error) {
