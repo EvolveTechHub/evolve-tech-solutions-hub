@@ -84,7 +84,9 @@ export async function onRequestPost({ request, env }) {
     const objective = clean(body.objective, MAX_OBJECTIVE);
     const mode = body.mode === "Advanced" ? "Advanced" : "Guided";
     const preferences = clean(body.preferences, 1800);
+    const aiConsent = body.aiConsent === true;
     if (!SERVICES.has(service)) return clientJson({ ok: false, message: "Choose a valid Evolve service." }, 400);
+    if (!aiConsent) return clientJson({ ok: false, message: "Please read and accept the AI Workspace Use Policy before running a task." }, 400);
     if (objective.length < 20) return clientJson({ ok: false, message: "Please provide a little more detail about the task (at least 20 characters)." }, 400);
 
     const recent = await env.DB.prepare(
