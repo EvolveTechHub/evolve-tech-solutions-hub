@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Evolve Learner Account</title><link rel="stylesheet" href="shared.css">
+<style>
+.account-wrap{width:min(980px,calc(100% - 32px));margin:36px auto 100px}.account-hero{padding:34px;border-radius:22px;background:linear-gradient(125deg,#061b2b,#0a4052);color:#fff}.account-hero h1{color:#fff;margin:8px 0}.account-hero p{color:#d0e5e9}.account-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-top:22px}.account-card{background:white;border:1px solid #d9e7eb;border-radius:18px;padding:24px;box-shadow:0 18px 55px rgba(5,35,52,.08)}.account-card h2{margin-top:0}.account-card label{display:block;margin:12px 0 5px}.account-card input,.account-card select{width:100%;padding:12px;border:1px solid #cbdde2;border-radius:10px;font:inherit}.account-card button{margin-top:16px;padding:12px 18px;border:0;border-radius:10px;background:#087f86;color:#fff;font-weight:700;cursor:pointer}.account-card button:disabled{opacity:.6;cursor:wait}.account-message{margin-top:12px;min-height:24px;color:#315366}.account-message.error{color:#a12c22}.account-message.good{color:#17633e}.account-panel{margin-top:20px;padding:24px;background:#fff;border:1px solid #d9e7eb;border-radius:18px}.account-panel button{padding:10px 15px;border:0;border-radius:9px;background:#e7eff2;color:#123447;cursor:pointer}.muted-note{font-size:.9rem;color:#617987}@media(max-width:600px){.account-hero{padding:25px}}
+</style></head><body>
+<header><a href="index.html"><img src="assets/evolve-logo.jpg" alt="Evolve"></a><nav><a href="index.html">Home</a><a href="courses.html">Courses</a><a href="portal.html">Registration</a></nav></header>
+<main class="account-wrap">
+<section class="account-hero"><div class="kicker">Evolve Academy</div><h1>Learner account</h1><p>Create an account to access your learner profile. Course enrolments, learning materials and progress tracking will be added in later stages.</p></section>
+<div id="accountForms" class="account-grid">
+<section class="account-card"><h2>Create account</h2><form id="registerForm">
+<label for="regName">Full name</label><input id="regName" name="name" autocomplete="name" required maxlength="120">
+<label for="regEmail">Email address</label><input id="regEmail" name="email" type="email" autocomplete="email" required maxlength="254">
+<label for="regInterest">Learning interest</label><select id="regInterest" name="interest"><option value="">Select an area (optional)</option><option>AI Foundations</option><option>Data Analytics</option><option>Machine Learning</option><option>Power BI / Business Intelligence</option><option>Digital Productivity</option><option>Other</option></select>
+<label for="regPassword">Password (at least 12 characters)</label><input id="regPassword" name="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+<label for="regConfirm">Confirm password</label><input id="regConfirm" name="confirm" type="password" autocomplete="new-password" minlength="12" maxlength="128" required>
+<label style="font-weight:500"><input type="checkbox" id="regConsent" required style="width:auto"> I have read the <a href="privacy.html" target="_blank" rel="noopener">Privacy Notice</a> and agree to Evolve using these details to create and manage my learner account.</label>
+<button type="submit" id="regButton">Create learner account</button><div id="regMessage" class="account-message" role="status"></div>
+</form></section>
+<section class="account-card"><h2>Already registered?</h2><form id="loginForm">
+<label for="loginEmail">Email address</label><input id="loginEmail" name="email" type="email" autocomplete="username" required maxlength="254">
+<label for="loginPassword">Password</label><input id="loginPassword" name="password" type="password" autocomplete="current-password" required maxlength="128">
+<button type="submit" id="loginButton">Sign in</button><div id="loginMessage" class="account-message" role="status"></div>
+</form><p class="muted-note">For account security, never share your password. If you cannot access your account, contact Evolve support.</p></section>
+</div>
+<section id="profilePanel" class="account-panel" hidden><h2>Welcome to your learner profile</h2><p id="profileText"></p><p class="muted-note">Your account is active. Course enrolments, lesson content and progress tracking are not yet available in this first release.</p><button id="logoutButton" type="button">Sign out</button></section>
+</main><footer>Evolve Academy · Learner account access</footer>
+<script>
+(()=>{const $=id=>document.getElementById(id);const forms=$('accountForms'),panel=$('profilePanel');
+function message(id,text,kind=''){const el=$(id);el.textContent=text;el.className='account-message '+kind;}
+async function showSession(){try{const r=await fetch('/api/learner/session',{cache:'no-store',credentials:'same-origin'});if(r.status===503){message('regMessage','Learner accounts are not configured yet. Please contact Evolve support.','error');return;}const d=await r.json();if(d.authenticated&&d.learner){forms.hidden=true;panel.hidden=false;$('profileText').textContent=d.learner.name+' · '+d.learner.email+(d.learner.interest?' · Interest: '+d.learner.interest:'');}}catch{message('loginMessage','Could not check your sign-in status. Refresh and try again.','error');}}
+$('registerForm').addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;if(!f.reportValidity())return;const password=$('regPassword').value;if(password!==$('regConfirm').value){message('regMessage','The passwords do not match.','error');return;}const b=$('regButton');b.disabled=true;message('regMessage','Creating your account…');try{const r=await fetch('/api/learner/register',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({name:$('regName').value,email:$('regEmail').value,interest:$('regInterest').value,password,privacyConsent:$('regConsent').checked})});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.message||'Account creation failed.');f.reset();message('regMessage','Account created. Opening your profile…','good');await showSession();}catch(err){message('regMessage',err.message,'error');}finally{b.disabled=false;}});
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();const b=$('loginButton');b.disabled=true;message('loginMessage','Signing in…');try{const r=await fetch('/api/learner/login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({email:$('loginEmail').value,password:$('loginPassword').value})});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.message||'Sign-in failed.');$('loginPassword').value='';await showSession();}catch(err){message('loginMessage',err.message,'error');}finally{b.disabled=false;}});
+$('logoutButton').addEventListener('click',async()=>{await fetch('/api/learner/logout',{method:'POST',credentials:'same-origin'});panel.hidden=true;forms.hidden=false;message('loginMessage','You have signed out.','good');});
+showSession();
+})();
+</script></body></html>
