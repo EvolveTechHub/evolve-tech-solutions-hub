@@ -11,5 +11,9 @@ export async function onRequestPost({request,env}){
   await requireLearnerDB(env);const {salt,hash}=await hashPassword(password),id=crypto.randomUUID(),now=new Date().toISOString();
   await env.DB.prepare("INSERT INTO learner_accounts (id,full_name,email,interest,password_hash,password_salt,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)").bind(id,name,email,interest,hash,salt,now,now).run();
   return learnerJson({ok:true,message:"Your learner account has been created.",learner:{id,name,email,interest}},201,{"set-cookie":await makeLearnerCookie(id,env)});
- }catch(e){if(String(e).includes("UNIQUE"))return learnerJson({ok:false,message:"An account with this email already exists. Please sign in instead."},409);return learnerJson({ok:false,message:"We could not create your account. Please try again."},500);}
+ }catch(e){
+  console.error("Learner registration failure:", e?.name || "Error", e?.message || "Unknown error");
+  if(String(e).includes("UNIQUE"))return learnerJson({ok:false,message:"An account with this email already exists. Please sign in instead."},409);
+  return learnerJson({ok:false,message:"We could not create your account. Please try again."},500);
+ }
 }
