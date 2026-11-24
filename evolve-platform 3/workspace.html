@@ -86,7 +86,7 @@ document.getElementById('serviceRequest').addEventListener('submit',async event=
  button.disabled=true;button.textContent='Sending…';message.textContent='Submitting your service request…';
  try{
   const response=await fetch('/api/submissions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-   type:'enquiry',name:data.get('name'),email:data.get('email'),organisation:data.get('organisation'),
+   type:'client_request',name:data.get('name'),email:data.get('email'),organisation:data.get('organisation'),
    interest:data.get('interest'),message:data.get('message'),website:data.get('website'),
    privacyConsent:data.get('privacyConsent')==='on'
   })});
