@@ -53,7 +53,7 @@
 <section class="request-layout" id="service-request">
 <div class="request-panel">
 <h2>Continue with your preferred solution</h2>
-<p>Review the discovery details carried over from your industry journey, add your contact information and submit your request to Evolve.</p>
+<p>Review your discovery details and submit your request. Sign in to your Client Account first to have the request automatically linked to your dashboard.</p>
 <div id="discoveryPrefill" class="coming" hidden style="margin:12px 0;padding:12px;border-radius:12px;white-space:normal"></div>
 <form id="serviceRequest">
 <label for="clientName">Full name</label><input id="clientName" name="name" autocomplete="name" maxlength="120" required>
@@ -78,6 +78,7 @@
 <footer><p>Evolve Technology Solutions Hub · Client Services Workspace</p></footer>
 <script>
 (()=>{const p=new URLSearchParams(window.location.search);const sector=p.get('sector'),organisation=p.get('organisation'),priority=p.get('priority'),solution=p.get('solution');if(sector&&organisation&&priority&&solution){const summary='Sector: '+sector+' | Organisation: '+organisation+' | Priority: '+priority+' | Preferred solution: '+solution;const box=document.getElementById('discoveryPrefill');box.hidden=false;box.textContent='Your discovery summary: '+summary;const select=document.getElementById('serviceType');select.value='Other service enquiry';document.getElementById('serviceDetails').value='Preferred solution from Evolve industry discovery\\n'+summary+'\\n\\nAdditional requirements or context: ';}})();
+fetch('/api/client/session',{cache:'no-store',credentials:'same-origin'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.authenticated&&d.client){document.getElementById('clientName').value=d.client.name||'';document.getElementById('clientEmail').value=d.client.email||'';document.getElementById('clientOrg').value=d.client.organisation||'';const note=document.createElement('p');note.className='coming';note.textContent='Signed in: this request will be linked to your Client Account.';document.getElementById('serviceRequest').prepend(note);}}).catch(()=>{});
 document.getElementById('serviceRequest').addEventListener('submit',async event=>{
  event.preventDefault();
  const form=event.currentTarget;
