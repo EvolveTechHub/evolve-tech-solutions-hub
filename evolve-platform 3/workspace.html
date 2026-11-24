@@ -52,8 +52,9 @@
 </section>
 <section class="request-layout" id="service-request">
 <div class="request-panel">
-<h2>Request an Evolve service</h2>
-<p>Share a few details. The Evolve team will receive your enquiry and follow up using the contact details you provide.</p>
+<h2>Continue with your preferred solution</h2>
+<p>Review the discovery details carried over from your industry journey, add your contact information and submit your request to Evolve.</p>
+<div id="discoveryPrefill" class="coming" hidden style="margin:12px 0;padding:12px;border-radius:12px;white-space:normal"></div>
 <form id="serviceRequest">
 <label for="clientName">Full name</label><input id="clientName" name="name" autocomplete="name" maxlength="120" required>
 <label for="clientEmail">Email address</label><input id="clientEmail" name="email" type="email" autocomplete="email" maxlength="254" required>
@@ -76,6 +77,7 @@
 </main>
 <footer><p>Evolve Technology Solutions Hub · Client Services Workspace</p></footer>
 <script>
+(()=>{const p=new URLSearchParams(window.location.search);const sector=p.get('sector'),organisation=p.get('organisation'),priority=p.get('priority'),solution=p.get('solution');if(sector&&organisation&&priority&&solution){const summary='Sector: '+sector+' | Organisation: '+organisation+' | Priority: '+priority+' | Preferred solution: '+solution;const box=document.getElementById('discoveryPrefill');box.hidden=false;box.textContent='Your discovery summary: '+summary;const select=document.getElementById('serviceType');select.value='Other service enquiry';document.getElementById('serviceDetails').value='Preferred solution from Evolve industry discovery\\n'+summary+'\\n\\nAdditional requirements or context: ';}})();
 document.getElementById('serviceRequest').addEventListener('submit',async event=>{
  event.preventDefault();
  const form=event.currentTarget;
