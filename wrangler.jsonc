@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "evolve-tech-solutions-hub",
+  "pages_build_output_dir": "./evolve-platform 3",
+  "compatibility_date": "2026-11-24",
+  "env": {
+    "preview": {
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "evolve-submissions",
+          "database_id": "1cafa135-723a-4a4d-bbce-6a1e4ac75669"
+        }
+      ]
+    }
+  }
+}
