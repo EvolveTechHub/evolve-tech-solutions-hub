@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Client Dashboard | Evolve</title><link rel="stylesheet" href="shared.css">
+<style>
+.dashboard-wrap{width:min(1080px,calc(100% - 32px));margin:36px auto 90px}.welcome{padding:34px;border-radius:22px;background:linear-gradient(125deg,#061b2b,#0a4052);color:#fff}.welcome h1{color:#fff;margin:8px 0}.welcome p{color:#d0e5e9}.profile-card,.feature-card{background:#fff;border:1px solid #d9e7eb;border-radius:18px;padding:24px;box-shadow:0 12px 38px rgba(5,35,52,.06)}.profile-card{margin-top:20px}.profile-details{display:flex;gap:10px;flex-wrap:wrap;color:#315366}.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin-top:20px}.feature-card h2{margin-top:0}.feature-card p{color:#617987}.status{font-size:.85rem;font-weight:700;color:#087f86}.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}.actions a,.actions button{display:inline-block;padding:11px 16px;border:0;border-radius:10px;background:#087f86;color:#fff;text-decoration:none;font-weight:700;cursor:pointer}.actions button{background:#e7eff2;color:#123447}@media(max-width:600px){.welcome{padding:25px}}
+</style></head><body>
+<header><a href="index.html"><img src="assets/evolve-logo.jpg" alt="Evolve"></a><nav><a href="index.html">Home</a><a href="workspace.html">Client Workspace</a><a href="learner.html">Learner Account</a></nav></header>
+<main class="dashboard-wrap">
+<section class="welcome"><div class="kicker">Evolve · Client Services</div><h1>Your client dashboard</h1><p>Your account space for Evolve service requests and project collaboration.</p></section>
+<section class="profile-card"><h2>Your profile</h2><div id="profileDetails" class="profile-details">Loading your account…</div><div class="actions"><a href="workspace.html">Visit Client Workspace</a><button id="logoutButton" type="button">Sign out</button></div></section>
+<div class="dashboard-grid">
+<section class="feature-card"><h2>My service requests</h2><p>Your requests and their current status will be listed here when request-to-account linking is added.</p><div class="status">Connection coming next</div></section>
+<section class="feature-card"><h2>My projects</h2><p>Approved projects, milestones and delivery progress will appear here.</p><div class="status">Coming in a later release</div></section>
+<section class="feature-card"><h2>Messages and updates</h2><p>Updates and conversations with the Evolve team will be available here.</p><div class="status">Coming in a later release</div></section>
+</div></main><footer>Evolve Technology Solutions Hub · Client dashboard</footer>
+<script>
+(async()=>{const details=document.getElementById('profileDetails');try{const r=await fetch('/api/client/session',{cache:'no-store',credentials:'same-origin'});if(r.status===503){details.textContent='Client accounts are temporarily unavailable. Please contact Evolve support.';return;}const d=await r.json();if(!d.authenticated||!d.client){window.location.replace('client.html');return;}const c=d.client;details.textContent=c.name+' · '+c.email+(c.organisation?' · '+c.organisation:'');}catch{details.textContent='We could not load your account. Please refresh the page.';}
+document.getElementById('logoutButton').addEventListener('click',async()=>{try{await fetch('/api/client/logout',{method:'POST',credentials:'same-origin'});}finally{window.location.replace('client.html');}});})();
+</script></body></html>
