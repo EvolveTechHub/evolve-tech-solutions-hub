@@ -1,1 +1,16 @@
-const CACHE='evolve-pwa-v1';const FILES=['./','./index.html','./courses.html','./portal.html','./admin.html','./sector-solutions.html','./pricing.html','./manifest.webmanifest','./assets/evolve-logo.jpg'];self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES))));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));
+// Evolve Technology Solutions Hub
+// Disable the old offline page cache that could serve stale or failed navigation responses.
+self.addEventListener('install', event => {
+  event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const cacheNames = await caches.keys();
+    await Promise.all(cacheNames.map(name => caches.delete(name)));
+    await self.clients.claim();
+  })());
+});
+
+// Intentionally do not intercept fetch requests.
+// Pages and assets are served directly from the latest Cloudflare Pages deployment.
