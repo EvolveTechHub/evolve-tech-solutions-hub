@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Evolve AI Enterprise workspaces for analytics, automation, cloud architecture, decision support and applied AI.">
+<meta name="robots" content="noindex,nofollow">
+<title>AI Enterprise Workspace | Evolve</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+:root{--ai-navy:#071c2d;--ai-teal:#087f8c;--ai-aqua:#8ce8e1;--ai-muted:#647783}
+body{background:#f4f8fa;color:#102b3b}
+.ai-shell{width:min(1180px,calc(100% - 36px));margin:30px auto 80px}
+.ai-hero{position:relative;overflow:hidden;padding:clamp(28px,5vw,54px);border-radius:26px;color:#fff;background:radial-gradient(circle at 88% 10%,#15c4c044,transparent 30%),linear-gradient(125deg,#061725,#0a4052 68%,#087b83)}
+.ai-hero:after{content:"";position:absolute;width:360px;height:360px;right:-140px;bottom:-240px;border:1px solid #8ce8e133;border-radius:50%;box-shadow:0 0 0 35px #8ce8e111,0 0 0 70px #8ce8e10a}
+.ai-kicker{color:#9ce9e3;font-size:.75rem;font-weight:850;letter-spacing:.16em;text-transform:uppercase}
+.ai-hero h1{margin:12px 0;font-size:clamp(2.1rem,5vw,3.7rem);line-height:1.06;letter-spacing:-.045em;color:#fff}
+.ai-hero p{max-width:760px;color:#d0e5e9;margin:0;font-size:1rem}
+.engine-note{display:flex;gap:13px;align-items:flex-start;margin:20px 0;padding:17px 19px;border:1px solid #e8d6a5;border-radius:15px;background:#fffaf0;color:#624c1d}
+.engine-note strong{display:block;margin-bottom:3px;color:#584315}
+.engine-note p{margin:0;font-size:.88rem;color:#6e5a2b}
+.layout{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(260px,.75fr);gap:20px;margin-top:20px;align-items:start}
+.panel{background:#fff;border:1px solid #e0e9ed;border-radius:20px;padding:clamp(20px,3vw,30px);box-shadow:0 12px 34px #0a33480b}
+.panel h2{margin:0 0 7px;color:#092c40;font-size:1.35rem}
+.panel-intro{margin:0 0 22px;color:var(--ai-muted);font-size:.9rem}
+.service-label{display:inline-flex;padding:7px 12px;border-radius:999px;background:#e8f7f6;color:#087780;font-size:.78rem;font-weight:800;margin-bottom:15px}
+label{display:block;font-weight:750;color:#18394a;font-size:.88rem;margin:16px 0 7px}
+input,select,textarea{width:100%;border:1px solid #cfdbdf;border-radius:11px;padding:12px 13px;background:#fff;color:#183443}
+textarea{min-height:132px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color:#087f8c}
+.hint{margin:6px 0 0;color:#71838c;font-size:.78rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.mode-options,.output-options{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.option{display:flex;align-items:flex-start;gap:9px;padding:12px;border:1px solid #dce6e9;border-radius:12px;background:#fbfdfe}
+.option input{width:auto;margin:4px 0 0;accent-color:#087f8c}
+.option span{font-size:.84rem;color:#294858}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.primary,.secondary{border:0;border-radius:999px;padding:13px 20px;font-weight:800;cursor:pointer}
+.primary{background:linear-gradient(110deg,#8cebe4,#4dd0c9);color:#062b37}
+.secondary{background:#eef4f6;color:#214353}
+.primary:disabled{opacity:.6;cursor:wait}
+.side-panel{position:sticky;top:105px}
+.side-panel h3{margin:0 0 12px;color:#0b3044}
+.side-panel ul{padding-left:19px;color:#617580;font-size:.88rem}
+.side-panel li{margin:10px 0}
+.step{display:flex;gap:12px;margin:17px 0}
+.step-num{width:30px;height:30px;flex:0 0 30px;border-radius:50%;display:grid;place-items:center;background:#e8f7f6;color:#087780;font-weight:850;font-size:.8rem}
+.step p{margin:0;color:#637781;font-size:.85rem}
+#reviewPanel{margin-top:20px;border:1px solid #b9dedd;background:#f4fbfa;border-radius:16px;padding:20px}
+#reviewPanel h3{margin:0 0 12px;color:#0a3948}
+.review-line{padding:10px 0;border-bottom:1px solid #dcebea;font-size:.86rem;color:#37515d;white-space:pre-wrap;overflow-wrap:anywhere}
+.review-line:last-of-type{border:0}
+#formMessage{margin-top:14px;font-size:.9rem}
+.smallprint{font-size:.78rem;color:#71818a}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.side-panel{position:static}}
+@media(max-width:560px){.ai-shell{width:calc(100% - 26px);margin-top:16px}.two,.mode-options,.output-options{grid-template-columns:1fr}.panel{padding:20px}.ai-hero{padding:27px 22px}}
+</style>
+</head>
+<body>
+<header>
+<a href="index.html"><img src="assets/evolve-logo.jpg" alt="Evolve Technology Solutions Hub"></a>
+<nav aria-label="Main navigation"><a href="index.html">Home</a><a href="index.html#solutions" aria-current="page">AI Solutions</a><a href="courses.html">Academy</a><a href="workspace.html">Client Workspace</a><a href="client.html">Client Account</a></nav>
+</header>
+<main class="ai-shell">
+<section class="ai-hero">
+<div class="ai-kicker">Evolve · AI Enterprise Engine</div>
+<h1>Bring us the complex work.</h1>
+<p>Describe the outcome you need in ordinary language. Shape a task around your organisation, preferred deliverables and operating requirements. Evolve's specialised AI workspaces are being developed to support complex, multi-step enterprise work.</p>
+</section>
+<div class="engine-note" role="note">
+<div aria-hidden="true">ⓘ</div><div><strong>Current release: structured task intake and expert review</strong><p>The workspace below is connected to Evolve's service-request system. Automated AI execution, secure file analysis and downloadable AI-generated reports are not enabled yet. Your request will be submitted to Evolve for review; this page will not pretend that an AI task has already run.</p></div>
+</div>
+<div class="layout">
+<section class="panel">
+<div class="service-label" id="serviceLabel">Enterprise AI workspace</div>
+<h2 id="workspaceTitle">Configure your task</h2>
+<p class="panel-intro" id="workspaceIntro">Tell us what you want to achieve and how you would like the result delivered.</p>
+<form id="aiTaskForm">
+<div class="two">
+<div><label for="fullName">Full name</label><input id="fullName" maxlength="120" autocomplete="name" required></div>
+<div><label for="email">Work email</label><input id="email" type="email" maxlength="254" autocomplete="email" required></div>
+</div>
+<label for="organisation">Organisation <span class="smallprint">(optional)</span></label>
+<input id="organisation" maxlength="160" autocomplete="organization">
+<label>How would you like to work?</label>
+<div class="mode-options">
+<label class="option"><input type="radio" name="mode" value="Guided" checked><span><strong>Guided</strong><br>Help me shape the task and clarify requirements.</span></label>
+<label class="option"><input type="radio" name="mode" value="Advanced"><span><strong>Advanced</strong><br>I have detailed instructions and constraints.</span></label>
+</div>
+<label for="objective">What do you want Evolve to accomplish?</label>
+<textarea id="objective" maxlength="4000" required placeholder="Describe the problem, the work to be done, relevant context and the outcome you expect. You can give detailed, multi-part instructions."></textarea>
+<p class="hint">Do not include passwords, access tokens, confidential personal data or other secrets in this form.</p>
+<div class="two">
+<div><label for="audience">Who will use the result?</label><input id="audience" maxlength="250" placeholder="e.g. executive team, analysts, customers"></div>
+<div><label for="success">What would make the result successful?</label><input id="success" maxlength="500" placeholder="e.g. clear forecast and board-ready report"></div>
+</div>
+<label>Preferred deliverables</label>
+<div class="output-options">
+<label class="option"><input type="checkbox" name="outputs" value="Executive report"><span>Executive report</span></label>
+<label class="option"><input type="checkbox" name="outputs" value="Detailed technical report"><span>Technical report</span></label>
+<label class="option"><input type="checkbox" name="outputs" value="Charts and visualisations"><span>Charts and visualisations</span></label>
+<label class="option"><input type="checkbox" name="outputs" value="Implementation roadmap"><span>Implementation roadmap</span></label>
+<label class="option"><input type="checkbox" name="outputs" value="Recommendations"><span>Recommendations</span></label>
+<label class="option"><input type="checkbox" name="outputs" value="Prototype or proof of concept"><span>Prototype / proof of concept</span></label>
+</div>
+<label for="constraints">Important constraints or preferences <span class="smallprint">(optional)</span></label>
+<textarea id="constraints" maxlength="1500" style="min-height:86px" placeholder="Tools, systems, timelines, formats, standards or requirements that must be respected."></textarea>
+<div style="position:absolute;left:-10000px" aria-hidden="true"><label for="website">Leave empty</label><input id="website" autocomplete="off" tabindex="-1"></div>
+<label class="option" style="margin-top:20px"><input id="privacyConsent" type="checkbox" required><span>I have read the <a href="privacy.html" target="_blank" rel="noopener">Privacy Notice</a> and agree that Evolve may use these details to review and respond to my request.</span></label>
+<div class="actions"><button class="primary" type="button" id="reviewButton">Review task →</button><a class="secondary" href="index.html#solutions">Choose another service</a></div>
+<div id="reviewPanel" hidden>
+<h3>Review your request before submitting</h3>
+<p class="smallprint">Check the details below. Submission sends a service request to Evolve for review; it does not start automated AI execution.</p>
+<div id="reviewContent"></div>
+<div class="actions"><button class="primary" type="submit" id="submitButton">Submit to Evolve for review</button><button class="secondary" type="button" id="editButton">Edit request</button></div>
+</div>
+<div id="formMessage" role="status" aria-live="polite"></div>
+</form>
+</section>
+<aside class="panel side-panel">
+<h3>How this workspace works</h3>
+<div class="step"><span class="step-num">1</span><p><strong>Describe the task</strong><br>Explain your objective, context and constraints in your own words.</p></div>
+<div class="step"><span class="step-num">2</span><p><strong>Set your preferences</strong><br>Choose the task mode and the deliverables you want.</p></div>
+<div class="step"><span class="step-num">3</span><p><strong>Review and submit</strong><br>Confirm the request before it is sent to Evolve.</p></div>
+<div class="step"><span class="step-num">4</span><p><strong>Expert follow-up</strong><br>The team can review scope, feasibility, data needs and next steps.</p></div>
+<hr style="border:0;border-top:1px solid #e3ebee;margin:22px 0">
+<h3>Working with an account</h3>
+<p class="smallprint">Sign in to your Client Account before submitting to associate the request with your account and view its status in your Client Dashboard.</p>
+<p><a href="client.html">Sign in or create a Client Account →</a></p>
+<p><a href="workspace.html">Open Client Workspace →</a></p>
+<hr style="border:0;border-top:1px solid #e3ebee;margin:22px 0">
+<h3>Data and files</h3>
+<p class="smallprint">Secure file upload and automated data processing will be introduced after protected storage, access controls and the AI execution service are configured. Do not email or paste sensitive datasets into this initial intake form.</p>
+</aside>
+</div>
+</main>
+<footer><p>Evolve Technology Solutions Hub · AI Enterprise Workspace</p></footer>
+<script>
+(()=>{
+const services={
+"process-optimisation":{name:"Process Optimisation",intro:"Map a workflow, identify bottlenecks and define measurable improvements.",hint:"Describe the current process, hand-offs, delays, systems involved and the target state."},
+"predictive-analytics":{name:"Data Analytics & Predictive Intelligence",intro:"Define an analytical task, forecast, performance review or tailored data insight.",hint:"Describe the data you have, the questions you need answered, the time horizon and the decisions the analysis should support."},
+"cloud-architecture":{name:"Cloud Architecture",intro:"Scope a cloud architecture, migration strategy or infrastructure improvement.",hint:"Describe your current or planned systems, workloads, scale, security requirements, budget constraints and preferred cloud environment."},
+"automation":{name:"Automation",intro:"Identify repeatable work and design an appropriate automation pathway.",hint:"Describe the trigger, steps, systems, exceptions, approvals and expected outcome of the workflow."},
+"decision-support":{name:"Decision Support",intro:"Structure a complex decision, compare scenarios and define evidence-based recommendations.",hint:"Describe the decision, available options, evaluation criteria, constraints and stakeholders."},
+"applied-ai-research":{name:"Applied AI Research",intro:"Explore an AI use case, research question, prototype or implementation pathway.",hint:"Describe the problem, intended users, available information, research questions and practical constraints."},
+"cybersecurity":{name:"Cybersecurity (Authorised Defensive Work)",intro:"Scope a defensive security review for systems you own or are authorised to protect.",hint:"Describe the authorised environment, security objectives and known concerns. Do not submit credentials or instructions to access systems without permission."},
+"custom-ai-software":{name:"Custom AI Software",intro:"Define a tailored AI-enabled application or software product.",hint:"Describe the users, core functions, integrations, data flows, constraints and expected outcomes."}
+};
+const params=new URLSearchParams(location.search),key=params.get("service")||"predictive-analytics",service=services[key]||services["predictive-analytics"];
+document.getElementById("serviceLabel").textContent=service.name;
+document.getElementById("workspaceTitle").textContent="Configure your "+service.name+" task";
+document.getElementById("workspaceIntro").textContent=service.intro+" "+service.hint;
+fetch("/api/client/session",{cache:"no-store",credentials:"same-origin"}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.authenticated&&d.client){document.getElementById("fullName").value=d.client.name||"";document.getElementById("email").value=d.client.email||"";document.getElementById("organisation").value=d.client.organisation||"";}}).catch(()=>{});
+const form=document.getElementById("aiTaskForm"),review=document.getElementById("reviewPanel"),reviewContent=document.getElementById("reviewContent"),message=document.getElementById("formMessage");
+function val(id){return document.getElementById(id).value.trim()}
+function selectedOutputs(){return [...form.querySelectorAll('input[name="outputs"]:checked')].map(x=>x.value)}
+function safeLine(label,value){const row=document.createElement("div");row.className="review-line";const strong=document.createElement("strong");strong.textContent=label+": ";row.append(strong,document.createTextNode(value||"Not specified"));reviewContent.append(row)}
+document.getElementById("reviewButton").addEventListener("click",()=>{
+ if(!form.reportValidity())return;
+ reviewContent.replaceChildren();
+ safeLine("Service",service.name);safeLine("Mode",form.querySelector('input[name="mode"]:checked').value);
+ safeLine("Objective and instructions",val("objective"));safeLine("Audience",val("audience"));
+ safeLine("Success measure",val("success"));safeLine("Deliverables",selectedOutputs().join(", "));
+ safeLine("Constraints",val("constraints"));safeLine("Contact",val("fullName")+" · "+val("email"));
+ review.hidden=false;review.scrollIntoView({behavior:"smooth",block:"nearest"});
+});
+document.getElementById("editButton").addEventListener("click",()=>{review.hidden=true;document.getElementById("reviewButton").focus()});
+form.addEventListener("submit",async e=>{
+ e.preventDefault();if(!form.reportValidity()||review.hidden)return;
+ const button=document.getElementById("submitButton");button.disabled=true;button.textContent="Submitting…";message.textContent="Sending your request to Evolve…";
+ const mode=form.querySelector('input[name="mode"]:checked').value;
+ const details=["Workspace: Evolve AI Enterprise","Service: "+service.name,"Task mode: "+mode,"Intended audience: "+(val("audience")||"Not specified"),"Success measure: "+(val("success")||"Not specified"),"Preferred deliverables: "+(selectedOutputs().join(", ")||"To be discussed"),"Constraints: "+(val("constraints")||"Not specified")].join("\n");
+ try{
+  const response=await fetch("/api/submissions",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({type:"client_request",name:val("fullName"),email:val("email"),organisation:val("organisation"),interest:"AI Enterprise — "+service.name,details,message:val("objective"),website:val("website"),privacyConsent:document.getElementById("privacyConsent").checked})});
+  const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.message||"Your request could not be submitted.");
+  message.textContent=result.message+" Your request has been sent for Evolve team review. Automated AI execution is not active in this release.";
+  message.style.color="#08745f";button.textContent="Submitted";
+ }catch(err){message.textContent=err.message||"We could not submit your request. Please try again.";message.style.color="#a33434";button.disabled=false;button.textContent="Submit to Evolve for review";}
+});
+})();
+</script>
+</body>
+</html>
