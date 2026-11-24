@@ -58,7 +58,7 @@ export async function onRequestPost({ request, env }) {
   const message = clean(payload.message, 4000);
   const consent = payload.privacyConsent === true;
 
-  if (!["enquiry", "registration", "quote"].includes(type)) {
+  if (!["enquiry", "registration", "quote", "client_request"].includes(type)) {
     return json({ ok: false, message: "Please select a valid submission type." }, 400);
   }
   if (name.length < 2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -67,7 +67,7 @@ export async function onRequestPost({ request, env }) {
   if (!consent) {
     return json({ ok: false, message: "Please confirm that you have read the Privacy Notice before submitting." }, 400);
   }
-  if (type === "enquiry" && (!interest || message.length < 5)) {
+  if ((type === "enquiry" || type === "client_request") && (!interest || message.length < 5)) {
     return json({ ok: false, message: "Please choose an area of interest and tell us briefly how we can help." }, 400);
   }
   if (type === "registration" && !interest) {
