@@ -9,7 +9,7 @@ export async function onRequestGet({ request, env }) {
 
     const url = new URL(request.url);
     const type = url.searchParams.get("type");
-    const allowedTypes = ["registration", "enquiry", "quote"];
+    const allowedTypes = ["registration", "enquiry", "quote", "client_request"];
     if (type && !allowedTypes.includes(type)) return jsonReply({ ok: false, message: "Invalid record filter." }, 400);
 
     const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 100), 1), 250);
