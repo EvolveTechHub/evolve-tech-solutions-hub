@@ -392,8 +392,10 @@
                 <div class="field"><label for="interest">Area of interest</label><select id="interest" name="interest"><option>Custom AI software</option><option>Data analytics</option><option>Cybersecurity & risk</option><option>Industry-specific AI</option><option>Boot camps & workshops</option><option>Online learning</option><option>Internships & mentorship</option><option>Institutional partnership</option><option>Other</option></select></div>
                 <div class="field full"><label for="message">How can we help?</label><textarea id="message" name="message" required placeholder="Tell us about your goals, challenge or idea..."></textarea></div>
               </div>
-              <p class="form-note">Privacy note: this prototype does not transmit or store your details on a server. It prepares a message on your device for you to copy. A live site should connect this form to an approved Evolve inbox or CRM before launch.</p>
-              <button class="btn btn-dark" type="submit">Prepare my enquiry <span aria-hidden="true">→</span></button>
+              <div class="field" style="position:absolute;left:-10000px" aria-hidden="true"><label for="enquiry-website">Leave this field empty</label><input id="enquiry-website" name="website" tabindex="-1" autocomplete="off"></div>
+              <label class="form-note" style="display:flex;align-items:flex-start;gap:9px"><input type="checkbox" name="privacyConsent" required style="margin-top:4px;width:auto"> I have read the <a href="privacy.html" target="_blank" rel="noopener" style="text-decoration:underline">Privacy Notice</a> and understand how my enquiry information will be used.</label>
+              <p class="form-note">Your details will be submitted to Evolve and stored for enquiry handling. Do not include passwords or sensitive personal information.</p>
+              <button class="btn btn-dark" type="submit">Send my enquiry <span aria-hidden="true">→</span></button>
               <div class="form-status" id="form-status" role="status" aria-live="polite"></div>
             </form>
           </div>
@@ -447,33 +449,46 @@
         else interest.value = 'Custom AI software';
       }));
 
-      // The form deliberately stays local until the owner supplies an approved destination.
+      // Send enquiries to the Cloudflare Pages submission API.
       const form = document.getElementById('enquiry-form');
       const status = document.getElementById('form-status');
       form.addEventListener('submit', async event => {
         event.preventDefault();
         if (!form.reportValidity()) return;
+        const button = form.querySelector('button[type="submit"]');
         const data = new FormData(form);
-        const message = [
-          'EVOLVE — WEBSITE ENQUIRY',
-          'Enquiry type: ' + kindInput.value,
-          'Name: ' + data.get('name'),
-          'Email: ' + data.get('email'),
-          'Organisation: ' + (data.get('organisation') || 'Not provided'),
-          'Area of interest: ' + data.get('interest'),
-          '', 'Message:', data.get('message')
-        ].join('\n');
+        const payload = {
+          type: 'enquiry',
+          name: data.get('name'),
+          email: data.get('email'),
+          organisation: data.get('organisation'),
+          interest: data.get('interest'),
+          message: data.get('message'),
+          website: data.get('website'),
+          privacyConsent: data.get('privacyConsent') === 'on'
+        };
+        button.disabled = true;
+        button.textContent = 'Sending…';
         status.classList.add('show');
-        status.innerHTML = 'Your enquiry is ready. Copy it and send it to the official Evolve contact address. This demo has not sent your details anywhere. <br/><br/><button type="button" id="copy-enquiry">Copy enquiry text</button>';
-        document.getElementById('copy-enquiry').addEventListener('click', async () => {
-          try { await navigator.clipboard.writeText(message); document.getElementById('copy-enquiry').textContent = 'Copied'; }
-          catch (_) {
-            const area = document.createElement('textarea'); area.value = message; document.body.appendChild(area); area.select();
-            try { document.execCommand('copy'); document.getElementById('copy-enquiry').textContent = 'Copied'; }
-            catch (err) { status.textContent = message; }
-            area.remove();
-          }
-        });
+        status.textContent = 'Submitting your enquiry securely…';
+        try {
+          const response = await fetch('/api/submissions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const result = await response.json();
+          if (!response.ok || !result.ok) throw new Error(result.message || 'Submission failed.');
+          status.textContent = result.message;
+          form.reset();
+          kindInput.value = 'Business solution';
+          document.querySelectorAll('.form-tab').forEach((tab, index) => tab.setAttribute('aria-pressed', String(index === 0)));
+        } catch (error) {
+          status.textContent = error.message || 'We could not send your enquiry. Please try again.';
+        } finally {
+          button.disabled = false;
+          button.innerHTML = 'Send my enquiry <span aria-hidden="true">→</span>';
+        }
       });
 
       // Spoken summary. Speech is generated by the visitor's browser; no audio is uploaded.
