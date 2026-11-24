@@ -13,7 +13,7 @@ export async function onRequestGet({ request, env }) {
     if (type && !allowedTypes.includes(type)) return jsonReply({ ok: false, message: "Invalid record filter." }, 400);
 
     const limit = Math.min(Math.max(Number(url.searchParams.get("limit") || 100), 1), 250);
-    let query = "SELECT id, type, name, email, organisation, interest, service, currency, details, message, created_at FROM submissions";
+    let query = "SELECT id, type, name, email, organisation, interest, service, currency, details, message, created_at, status FROM submissions";
     const bindings = [];
     if (type) {
       query += " WHERE type = ?";
