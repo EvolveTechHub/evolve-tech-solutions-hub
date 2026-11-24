@@ -40,6 +40,10 @@ export async function onRequestPost({ request, env }) {
     return json({ ok: false, message: "The form data could not be read. Please try again." }, 400);
   }
 
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return json({ ok: false, message: "Please submit a valid form." }, 400);
+  }
+
   // Honeypot: quietly accept automated spam without storing it.
   if (clean(payload.website, 200)) return json({ ok: true, message: "Thank you. Your submission has been received." }, 201);
 
