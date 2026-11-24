@@ -107,6 +107,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color
 <textarea id="constraints" maxlength="1500" style="min-height:86px" placeholder="Tools, systems, timelines, formats, standards or requirements that must be respected."></textarea>
 <div style="position:absolute;left:-10000px" aria-hidden="true"><label for="website">Leave empty</label><input id="website" autocomplete="off" tabindex="-1"></div>
 <label class="option" style="margin-top:20px"><input id="privacyConsent" type="checkbox" required><span>I have read the <a href="privacy.html" target="_blank" rel="noopener">Privacy Notice</a> and agree that Evolve may use these details to review and respond to my request.</span></label>
+<label class="option" style="margin-top:10px"><input id="aiConsent" type="checkbox"><span>I have read and agree to the <a href="ai-use-policy.html" target="_blank" rel="noopener">AI Workspace Use Policy</a>. If I am under 18, I have permission and guidance from a parent or legal guardian.</span></label>
 <div class="actions"><button class="primary" type="button" id="reviewButton">Review task →</button><a class="secondary" href="index.html#solutions">Choose another service</a></div>
 <div id="reviewPanel" hidden>
 <h3>Review your request before submitting</h3>
@@ -206,11 +207,12 @@ document.getElementById("editButton").addEventListener("click",()=>{review.hidde
 document.getElementById("runAiButton").addEventListener("click",async()=>{
  if(!form.reportValidity()||review.hidden)return;
  if(!signedIn){message.textContent="Please sign in to your Client Account before running an AI task.";message.style.color="#a33434";return;}
+ if(!document.getElementById("aiConsent").checked){message.textContent="Please read and accept the AI Workspace Use Policy before running an AI task.";message.style.color="#a33434";return;}
  const button=document.getElementById("runAiButton");button.disabled=true;button.textContent="AI is working…";
  message.textContent="Your task is being processed. Please keep this page open.";message.style.color="#37515d";
  const preferences=["Audience: "+(val("audience")||"Not specified"),"Success measure: "+(val("success")||"Not specified"),"Preferred deliverables: "+(selectedOutputs().join(", ")||"Not specified"),"Constraints: "+(val("constraints")||"Not specified")].join("\n");
  try{
-  const response=await fetch("/api/client/ai-tasks",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({service:service.name,mode:form.querySelector('input[name="mode"]:checked').value,objective:val("objective"),preferences})});
+  const response=await fetch("/api/client/ai-tasks",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({service:service.name,mode:form.querySelector('input[name="mode"]:checked').value,objective:val("objective"),preferences,aiConsent:true})});
   const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||"The AI task could not be completed.");
   message.textContent="AI task completed and saved to your Client Account. Remaining tasks in the current 24-hour window: "+data.remainingToday+". Review the result before relying on it.";
   message.style.color="#08745f";
