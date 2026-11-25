@@ -160,7 +160,7 @@ const params=new URLSearchParams(location.search),key=params.get("service")||"pr
 document.getElementById("serviceLabel").textContent=service.name;
 document.getElementById("workspaceTitle").textContent="Configure your "+service.name+" task";
 document.getElementById("workspaceIntro").textContent=service.intro+" "+service.hint;
-let signedIn=false,latestResult="",latestMeta="";
+let signedIn=false,latestResult="",latestMeta="",lastDatasetAnalysis=null;
 async function loadAccount(){
  try{
   const r=await fetch("/api/client/session",{cache:"no-store",credentials:"same-origin"});
@@ -231,7 +231,39 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
   const previewBody=document.createElement("tbody");
   for(const record of a.preview){const tr=document.createElement("tr");for(const value of Object.values(record)){const td=document.createElement("td");td.textContent=value;td.style.cssText="padding:7px;border-bottom:1px solid #e4eeee;white-space:nowrap";tr.append(td)}previewBody.append(tr)}
   previewTable.append(previewHead,previewBody);results.append(previewTable);
+  const chart = a.chartData;
+  if(chart && chart.points && chart.points.length){
+   const chartHeading=document.createElement("h4");chartHeading.textContent="Interactive category comparison";chartHeading.style.margin="22px 0 8px";results.append(chartHeading);
+   const chartHint=document.createElement("p");chartHint.className="smallprint";chartHint.textContent="Grouped totals by category. Choose a numeric field to compare. This chart is descriptive and does not establish causation.";results.append(chartHint);
+   const selector=document.createElement("select");selector.setAttribute("aria-label","Choose metric for chart");
+   chart.series.forEach((name,index)=>{const option=document.createElement("option");option.value=String(index);option.textContent=name;selector.append(option)});
+   results.append(selector);
+   const canvas=document.createElement("canvas");canvas.width=760;canvas.height=Math.max(220,chart.points.length*42+50);canvas.style.cssText="width:100%;height:auto;display:block;margin-top:10px;border:1px solid #e4eeee;border-radius:12px;background:#fff";canvas.setAttribute("role","img");canvas.setAttribute("aria-label","Bar chart comparing category totals");
+   results.append(canvas);
+   const drawChart=()=>{const ctx=canvas.getContext("2d");if(!ctx)return;const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);const metric=Number(selector.value)||0;const max=Math.max(1,...chart.points.map(p=>p.values[metric]||0));const left=190,right=24,top=18,row=38,barMax=w-left-right-70;ctx.font="16px Arial";chart.points.forEach((p,i)=>{const y=top+i*row;const value=p.values[metric]||0;ctx.fillStyle="#244b5a";ctx.textAlign="right";ctx.fillText(p.label.slice(0,22),left-12,y+20);ctx.fillStyle="#dcefed";ctx.fillRect(left,y,barMax,22);ctx.fillStyle="#087f8c";ctx.fillRect(left,y,Math.max(1,barMax*value/max),22);ctx.fillStyle="#18394a";ctx.textAlign="left";ctx.fillText(String(Number(value.toFixed(2))),left+barMax+9,y+18)});};
+   selector.addEventListener("change",drawChart);drawChart();
+  } else {
+   const noChart=document.createElement("p");noChart.className="smallprint";noChart.textContent="A category comparison chart could not be created automatically. Include a categorical column with a manageable number of values and at least one numeric column.";results.append(noChart);
+  }
+  const insightWrap=document.createElement("div");insightWrap.style.cssText="margin-top:20px;padding:16px;border:1px solid #d7e8e8;border-radius:14px;background:#fbfefe";
+  const insightButton=document.createElement("button");insightButton.type="button";insightButton.className="primary";insightButton.textContent="Generate AI business insights";
+  const insightStatus=document.createElement("p");insightStatus.className="smallprint";insightStatus.setAttribute("role","status");insightStatus.setAttribute("aria-live","polite");
+  insightButton.addEventListener("click",async()=>{
+   if(!signedIn){insightStatus.textContent="Sign in to your Client Account first.";return;}
+   if(!document.getElementById("privacyConsent").checked||!document.getElementById("aiConsent").checked){insightStatus.textContent="Confirm both the Privacy Notice and AI Workspace Use Policy first.";return;}
+   insightButton.disabled=true;insightButton.textContent="Generating insights…";insightStatus.textContent="Sending aggregate statistics only to the AI service. The raw CSV is not sent.";
+   try{
+    const response=await fetch("/api/client/dataset-insights",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({analysis:lastDatasetAnalysis,aiConsent:true,privacyConsent:true})});
+    const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.message||"Could not generate insights.");
+    showResult(result.result,"Dataset insights · "+new Date(result.createdAt).toLocaleString()+" · "+result.model);
+    insightStatus.textContent="AI insight report generated and saved to your Client Account. Remaining tasks in the current 24-hour window: "+result.remainingToday+".";
+    loadHistory();
+   }catch(error){insightStatus.textContent=error.message||"AI insights could not be generated.";}
+   finally{insightButton.disabled=false;insightButton.textContent="Generate AI business insights";}
+  });
+  insightWrap.append(insightButton,insightStatus);results.append(insightWrap);
   const note=document.createElement("p");note.className="smallprint";note.textContent=data.notice;results.append(note);
+  lastDatasetAnalysis=a;
   results.hidden=false;status.textContent="Dataset analysis completed. Review the summaries and column types before drawing conclusions.";
  }catch(error){status.textContent=error.message||"Dataset analysis could not be completed.";}
  finally{button.disabled=false;button.textContent="Analyse dataset";}
