@@ -224,6 +224,13 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
    tbody.append(tr);
   }
   table.append(tbody);results.append(table);
+  const previewTitle=document.createElement("h4");previewTitle.textContent="Data preview (first 8 rows)";previewTitle.style.margin="18px 0 8px";results.append(previewTitle);
+  const previewTable=document.createElement("table");previewTable.style.cssText="width:100%;border-collapse:collapse;font-size:.78rem;display:block;overflow-x:auto";
+  const previewHead=document.createElement("tr");
+  for(const h of Object.keys(a.preview[0]||{})){const th=document.createElement("th");th.textContent=h;th.style.cssText="padding:7px;border-bottom:1px solid #d5e5e5;text-align:left";previewHead.append(th)}
+  const previewBody=document.createElement("tbody");
+  for(const record of a.preview){const tr=document.createElement("tr");for(const value of Object.values(record)){const td=document.createElement("td");td.textContent=value;td.style.cssText="padding:7px;border-bottom:1px solid #e4eeee;white-space:nowrap";tr.append(td)}previewBody.append(tr)}
+  previewTable.append(previewHead,previewBody);results.append(previewTable);
   const note=document.createElement("p");note.className="smallprint";note.textContent=data.notice;results.append(note);
   results.hidden=false;status.textContent="Dataset analysis completed. Review the summaries and column types before drawing conclusions.";
  }catch(error){status.textContent=error.message||"Dataset analysis could not be completed.";}
