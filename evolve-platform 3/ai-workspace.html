@@ -240,7 +240,7 @@ function managementReportLines(){
  const trend=a.trendData;
  if(trend)add("4. Trends and anomalies",[
   "Date field: "+trend.dateColumn+". Grouping: "+trend.granularity+". Periods assessed: "+trend.points.length+".",
-  "Anomaly screening status: "+(trend.anomalies?.status||"not available")+". Method: "+(trend.anomalies?.method||"not available")+".",
+  "Anomaly screening status: "+(trend.anomalies?.status||"not available")+". Method: "+String(trend.anomalies?.method||"not available").replace(/[.]+$/,"")+".",
   ...(trend.anomalies?.findings||[]).map(x=>x.period+" | "+x.metric+" | observed "+x.value+" | dataset median "+x.median+" | "+x.direction),
   ...((trend.anomalyContext?.findings||[]).map(x=>x.period+": "+(x.topCategory||"The leading category")+" is the largest contributor among the uploaded records for this date (share of uploaded records: "+(x.topCategorySharePercent??"not available")+"%). This is not a measure of its share of all company sales. "+(x.enquiries?.sameDayTotal!==null&&x.enquiries?.sameDayTotal!==undefined?"Enquiries are shown separately: "+x.enquiries.sameDayTotal+" that date versus historical daily median "+x.enquiries.historicalDailyMedian+".":x.enquiries?.reason||"No Enquiries comparison available.")))
  ]);
@@ -255,9 +255,9 @@ function managementReportLines(){
  else add("5. Forecast results and limitations",[forecast?.reason||"No forecast was produced."]);
  const qualityIssues=a.columnSummaries.filter(c=>c.missing>0),highForecast=forecast?.metrics?.filter(m=>m.status==="available"&&m.quality==="high_validation_error")||[];
  add("6. Business risks and opportunities",[
-  qualityIssues.length?"Data completeness risk: missing values were detected in "+qualityIssues.map(c=>c.name).join(", ")+".":"No missing values were reported in the analysed columns.",
+  qualityIssues.length?"Data completeness risk: missing values were detected in "+qualityIssues.map(c=>c.name).join(", ")+".":"No missing values were reported in the analysed columns. These checks describe only the uploaded file; they do not establish that the data is representative or complete for the business.",
   a.duplicateRows?"Duplicate-record risk: "+a.duplicateRows+" duplicate rows were detected and should be reviewed.":"No duplicate rows were detected.",
-  highForecast.length?"Forecast risk: "+highForecast.map(m=>m.metric).join(", ")+" has high validation error; do not use these forecasts as a primary basis for decisions.":"Review validation metrics before using any forecast.",
+  highForecast.length?"Forecast risk: high validation error affects "+highForecast.map(m=>m.metric).join(" and ")+". These projections should not guide operational decisions.":"Review validation metrics before using any forecast.",
   a.chartData?"Opportunity: category-level totals provide a basis for further investigation, within the coverage of the uploaded records.":"Opportunity: include a suitable categorical field to enable comparison.",
   "Statistical anomaly flags indicate unusual values, not proven errors, causes or business events."
  ]);
