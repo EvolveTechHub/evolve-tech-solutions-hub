@@ -302,6 +302,27 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
       const unavailable=document.createElement("p");unavailable.className="smallprint";unavailable.textContent="Screening was not run because one or more metrics have incomplete period values.";results.append(unavailable);
     }
    }
+   const context=trend.anomalyContext;
+   if(context){
+    const ch=document.createElement("h4");ch.textContent="Anomaly investigation context";ch.style.margin="20px 0 7px";results.append(ch);
+    const note=document.createElement("p");note.className="smallprint";note.textContent=context.status==="assessed"?(context.note||"Product/category and Enquiries comparisons are descriptive only."):(context.reason||"Product-level context is unavailable for this dataset.");results.append(note);
+    if(context.status==="assessed")for(const item of context.findings||[]){
+     const wrap=document.createElement("div");wrap.style.cssText="margin:10px 0;padding:12px;border:1px solid #e1ebeb;border-radius:10px";
+     const heading=document.createElement("strong");heading.textContent=item.period+" · "+(item.categoryMeaning==="product"?"Product breakdown":"Category breakdown");wrap.append(heading);
+     if(item.status!=="assessed"){const msg=document.createElement("p");msg.className="smallprint";msg.textContent=item.reason||"The breakdown could not be calculated.";wrap.append(msg);}
+     else{
+      const summary=document.createElement("p");summary.className="smallprint";summary.textContent="Sales total: "+item.salesTotal.toLocaleString()+" · Largest contributor: "+(item.topCategory||"not available")+(item.topCategorySharePercent===null?"":" ("+item.topCategorySharePercent+"% of the day's total)");wrap.append(summary);
+      const table=document.createElement("table");table.style.cssText="width:100%;border-collapse:collapse;font-size:.82rem";
+      const head=document.createElement("tr");["Product/category","Day total","Share","Typical daily median","Compared with own median"].forEach(label=>{const th=document.createElement("th");th.textContent=label;th.style.cssText="text-align:left;padding:7px;border-bottom:1px solid #d5e5e5";head.append(th)});
+      const body=document.createElement("tbody");for(const cat of item.categories||[]){const tr=document.createElement("tr");[cat.label,cat.total.toLocaleString(),cat.sharePercent===null?"—":cat.sharePercent+"%",cat.typicalDailyMedian.toLocaleString(),cat.comparedWithMedian].forEach(value=>{const td=document.createElement("td");td.textContent=String(value);td.style.cssText="padding:7px;border-bottom:1px solid #e4eeee";tr.append(td)});body.append(tr)}table.append(head,body);wrap.append(table);
+      const enq=document.createElement("p");enq.className="smallprint";
+      enq.textContent=item.enquiries&&item.enquiries.sameDayTotal!==null&&item.enquiries.sameDayTotal!==undefined
+       ?"Enquiries on this date: "+item.enquiries.sameDayTotal.toLocaleString()+" · Historical daily median: "+item.enquiries.historicalDailyMedian.toLocaleString()+" · Independently "+item.enquiries.comparedWithMedian+" its median. This comparison does not establish a relationship with Sales."
+       :(item.enquiries?.reason||"No reliable same-day Enquiries comparison is available.");wrap.append(enq);
+     }
+     results.append(wrap);
+    }
+   }
 
   }else{
    const noTrend=document.createElement("p");noTrend.className="smallprint";noTrend.textContent="No reliable date column was detected. Use a date column with recognisable dates (preferably YYYY-MM-DD) and at least one numeric column to generate a time trend.";results.append(noTrend);
