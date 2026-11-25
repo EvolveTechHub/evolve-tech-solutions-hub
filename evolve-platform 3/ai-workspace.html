@@ -211,13 +211,13 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
   const response=await fetch("/api/client/dataset-analysis",{method:"POST",credentials:"same-origin",body});
   const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||"Dataset analysis failed.");
   const a=data.analysis;results.replaceChildren();
-  const summary=document.createElement("p");summary.textContent=a.rows.toLocaleString()+" data rows · "+a.columns+" columns · "+a.duplicateRows+" duplicate rows detected";results.append(summary);
+  const summary=document.createElement("p");summary.textContent=a.rows.toLocaleString()+" data rows · "+a.columnCount+" columns · "+a.duplicateRows+" duplicate rows detected";results.append(summary);
   const table=document.createElement("table");table.style.cssText="width:100%;border-collapse:collapse;font-size:.82rem";
   const head=document.createElement("tr");
   ["Column","Type","Missing","Distinct","Summary"].forEach(t=>{const th=document.createElement("th");th.textContent=t;th.style.cssText="text-align:left;padding:8px;border-bottom:1px solid #d5e5e5";head.append(th)});
   const thead=document.createElement("thead");thead.append(head);table.append(thead);
   const tbody=document.createElement("tbody");
-  for(const c of a.columns){
+  for(const c of a.columnSummaries){
    const tr=document.createElement("tr");
    const detail=c.numeric?("Min "+c.numeric.min+" · Median "+c.numeric.median+" · Mean "+c.numeric.mean+" · Max "+c.numeric.max):c.topValues.map(v=>v.value+" ("+v.count+")").join(", ");
    [c.name,c.type,String(c.missing),String(c.distinct),detail||"—"].forEach(v=>{const td=document.createElement("td");td.textContent=v;td.style.cssText="padding:8px;border-bottom:1px solid #e4eeee;vertical-align:top;overflow-wrap:anywhere";tr.append(td)});
