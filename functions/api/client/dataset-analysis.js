@@ -208,7 +208,8 @@ export async function onRequestPost({ request, env }) {
         duplicateRows: duplicates,
         preview,
         columnSummaries: columns,
-        chartData
+        chartData,
+        trendData
       },
       notice: "Analysis was computed from the uploaded CSV in memory. The raw file was not saved. Review column types and data quality before using the results."
     });
