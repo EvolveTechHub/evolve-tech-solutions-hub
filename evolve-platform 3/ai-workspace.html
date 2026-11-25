@@ -253,6 +253,38 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
   } else {
    const noChart=document.createElement("p");noChart.className="smallprint";noChart.textContent="A category comparison chart could not be created automatically. Include a categorical column with a manageable number of values and at least one numeric column.";results.append(noChart);
   }
+  const trend=a.trendData;
+  if(trend && trend.points && trend.points.length){
+   const trendHeading=document.createElement("h4");trendHeading.textContent="Sales and enquiry trends over time";trendHeading.style.margin="24px 0 8px";results.append(trendHeading);
+   const trendHint=document.createElement("p");trendHint.className="smallprint";trendHint.textContent="Date field: "+trend.dateColumn+" · Grouped by "+trend.granularity+(trend.excludedRows?" · "+trend.excludedRows+" rows without a recognised date excluded":"")+". Values are summed from dated records; this is descriptive, not a forecast.";results.append(trendHint);
+   const trendSelector=document.createElement("select");trendSelector.setAttribute("aria-label","Choose metric for time trend chart");
+   trend.series.forEach((name,index)=>{const option=document.createElement("option");option.value=String(index);option.textContent=name;trendSelector.append(option)});
+   results.append(trendSelector);
+   const trendCanvas=document.createElement("canvas");trendCanvas.width=900;trendCanvas.height=340;trendCanvas.style.cssText="width:100%;height:auto;display:block;margin-top:10px;border:1px solid #e4eeee;border-radius:12px;background:#fff";trendCanvas.setAttribute("role","img");trendCanvas.setAttribute("aria-label","Line chart showing numeric totals over time");results.append(trendCanvas);
+   const trendDraw=()=>{
+    const ctx=trendCanvas.getContext("2d");if(!ctx)return;
+    const w=trendCanvas.width,h=trendCanvas.height,left=76,right=24,top=24,bottom=58,plotW=w-left-right,plotH=h-top-bottom;
+    ctx.clearRect(0,0,w,h);
+    const metric=Number(trendSelector.value)||0,values=trend.points.map(p=>p.values[metric]||0),max=Math.max(1,...values);
+    ctx.font="13px Arial";ctx.strokeStyle="#dce7e9";ctx.fillStyle="#526b76";ctx.lineWidth=1;
+    for(let tick=0;tick<=4;tick++){const y=top+plotH-(plotH*tick/4);ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke();ctx.textAlign="right";ctx.fillText(String(Number((max*tick/4).toFixed(2))),left-10,y+4)}
+    ctx.strokeStyle="#087f8c";ctx.lineWidth=3;ctx.beginPath();
+    values.forEach((value,i)=>{const x=trend.points.length===1?left+plotW/2:left+(plotW*i/(trend.points.length-1));const y=top+plotH-(value/max)*plotH;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)});
+    ctx.stroke();ctx.fillStyle="#087f8c";
+    values.forEach((value,i)=>{const x=trend.points.length===1?left+plotW/2:left+(plotW*i/(trend.points.length-1));const y=top+plotH-(value/max)*plotH;ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill()});
+    const step=Math.max(1,Math.ceil(trend.points.length/8));ctx.fillStyle="#526b76";ctx.textAlign="center";
+    trend.points.forEach((point,i)=>{if(i%step===0||i===trend.points.length-1){const x=trend.points.length===1?left+plotW/2:left+(plotW*i/(trend.points.length-1));ctx.save();ctx.translate(x,h-18);ctx.rotate(-0.35);ctx.fillText(point.date,0,0);ctx.restore()}});
+   };
+   trendSelector.addEventListener("change",trendDraw);trendDraw();
+   const trendTable=document.createElement("details");trendTable.style.marginTop="12px";
+   const trendSummary=document.createElement("summary");trendSummary.textContent="View time-period totals";trendSummary.style.cursor="pointer";trendTable.append(trendSummary);
+   const trendRows=document.createElement("table");trendRows.style.cssText="width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px";
+   const trendHead=document.createElement("tr");[trend.granularity==="month"?"Month":"Date","Records",...trend.series].forEach(label=>{const th=document.createElement("th");th.textContent=label;th.style.cssText="text-align:left;padding:8px;border-bottom:1px solid #d5e5e5";trendHead.append(th)});
+   const trendBody=document.createElement("tbody");for(const point of trend.points){const tr=document.createElement("tr");[point.date,point.count,...point.values].forEach(value=>{const td=document.createElement("td");td.textContent=typeof value==="number"?value.toLocaleString(undefined,{maximumFractionDigits:2}):String(value);td.style.cssText="padding:8px;border-bottom:1px solid #e4eeee";tr.append(td)});trendBody.append(tr)}
+   trendRows.append(trendHead,trendBody);trendTable.append(trendRows);results.append(trendTable);
+  }else{
+   const noTrend=document.createElement("p");noTrend.className="smallprint";noTrend.textContent="No reliable date column was detected. Use a date column with recognisable dates (preferably YYYY-MM-DD) and at least one numeric column to generate a time trend.";results.append(noTrend);
+  }
   const insightWrap=document.createElement("div");insightWrap.style.cssText="margin-top:20px;padding:16px;border:1px solid #d7e8e8;border-radius:14px;background:#fbfefe";
   const insightButton=document.createElement("button");insightButton.type="button";insightButton.className="primary";insightButton.textContent="Generate AI business insights";
   const insightStatus=document.createElement("p");insightStatus.className="smallprint";insightStatus.setAttribute("role","status");insightStatus.setAttribute("aria-live","polite");
