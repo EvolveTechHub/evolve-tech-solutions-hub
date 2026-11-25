@@ -100,6 +100,37 @@ export async function onRequestPost({ request, env }) {
               totals: Array.isArray(point.values) ? point.values.slice(0, 3).map(v => Number.isFinite(Number(v)) ? Number(v) : 0) : []
             }))
           }
+        : null,
+      forecastData: analysis.forecastData && typeof analysis.forecastData === "object"
+        ? {
+            status: clean(analysis.forecastData.status, 40),
+            reason: clean(analysis.forecastData.reason, 300),
+            method: clean(analysis.forecastData.method, 120),
+            granularity: clean(analysis.forecastData.granularity, 20),
+            historicalPeriods: Math.max(0, Math.min(25000, Number(analysis.forecastData.historicalPeriods) || 0)),
+            validationPeriods: Math.max(0, Math.min(20, Number(analysis.forecastData.validationPeriods) || 0)),
+            minimumPeriods: Math.max(0, Math.min(100, Number(analysis.forecastData.minimumPeriods) || 0)),
+            metrics: Array.isArray(analysis.forecastData.metrics) ? analysis.forecastData.metrics.slice(0, 3).map(metric => ({
+              metric: clean(metric.metric, 100),
+              status: clean(metric.status, 40),
+              reason: clean(metric.reason, 300),
+              model: clean(metric.model, 80),
+              validation: metric.validation && typeof metric.validation === "object" ? {
+                holdoutPeriods: Math.max(0, Math.min(20, Number(metric.validation.holdoutPeriods) || 0)),
+                trendMae: Number.isFinite(Number(metric.validation.trendMae)) ? Number(metric.validation.trendMae) : null,
+                naiveMae: Number.isFinite(Number(metric.validation.naiveMae)) ? Number(metric.validation.naiveMae) : null,
+                selectedMae: Number.isFinite(Number(metric.validation.selectedMae)) ? Number(metric.validation.selectedMae) : null,
+                wapePercent: Number.isFinite(Number(metric.validation.wapePercent)) ? Number(metric.validation.wapePercent) : null
+              } : null,
+              forecasts: Array.isArray(metric.forecasts) ? metric.forecasts.slice(0, 3).map(point => ({
+                period: clean(point.period, 20),
+                estimate: Number(point.estimate) || 0,
+                lower: Number(point.lower) || 0,
+                upper: Number(point.upper) || 0
+              })) : [],
+              uncertaintyNote: clean(metric.uncertaintyNote, 300)
+            })) : []
+          }
         : null
     };
     const recent = await env.DB.prepare(
@@ -108,7 +139,7 @@ export async function onRequestPost({ request, env }) {
     if ((recent?.total || 0) >= 3) return clientJson({ ok: false, message: "You have reached the initial limit of 3 AI tasks in 24 hours. Please try again later." }, 429);
 
     const messages = [
-      { role: "system", content: "You are Evolve AI, a careful business data analyst. Interpret only the supplied aggregate statistics. You have not seen the raw dataset and must not imply otherwise. Do not invent trends over time, correlations, causal effects, forecasts, customer characteristics, or business outcomes that the summary cannot support. If timeTrend is supplied, describe only the observed date-grouped totals, state whether grouping is daily or monthly, mention excluded undated rows, and identify increases or decreases only when directly visible in the supplied points. Do not call this a forecast. Distinguish observed statistics from hypotheses and recommendations. Explicitly mention the small sample size when row count is below 30. Explain that top category counts are record frequencies, not metric totals. If categoryBreakdown is supplied, interpret every metric separately. The categoryBreakdown.verifiedFindings and orderedTotals are backend-computed authoritative rankings; reproduce their ordering and values exactly, and never contradict them. Do not independently guess or recalculate rankings from memory. If verifiedFindings says a category is not the lowest for a metric, do not call it the lowest. Never describe a category as having low overall performance merely because it ranks low on one metric. Explicitly distinguish total values from averages per record; averages per record are descriptive and do not establish conversion rates or causal relationships. For example, a category may have fewer enquiries but still have higher sales totals than another category; state both facts accurately. Never infer that a column named Sales is monetary revenue, units sold, or profit unless its meaning and units are provided. If a ratio is discussed, label it as a simple aggregate ratio and warn that it is not necessarily a conversion rate because the rows may not represent matched enquiry-to-sale journeys. Provide headings: 1) What the summary shows, 2) Category-level totals, 3) Data quality and limitations, 4) Useful business questions, 5) Recommended next analyses, 6) Practical actions. Include a separate time-trend interpretation in the relevant sections when timeTrend is available; otherwise say no reliable date trend was supplied. Use concise, specific language and explain when a conclusion cannot be drawn." },
+      { role: "system", content: "You are Evolve AI, a careful business data analyst. Interpret only the supplied aggregate statistics. You have not seen the raw dataset and must not imply otherwise. Do not invent trends over time, correlations, causal effects, forecasts, customer characteristics, or business outcomes that the summary cannot support. If timeTrend is supplied, describe only the observed date-grouped totals, state whether grouping is daily or monthly, mention excluded undated rows, and identify increases or decreases only when directly visible in the supplied points. If forecastData is supplied, use only its backend-computed forecasts, validation metrics, model choice and uncertainty bands. Clearly label projections as experimental baseline estimates, state the historical period count and three-period holdout validation, compare trend MAE with naive baseline MAE, report selected-model MAE and WAPE where available, and explain that uncertainty bands are indicative rather than guaranteed. Never present projections as facts, guarantees, budgets or financial advice. If fewer than 12 periods are available or status is insufficient_data, explicitly state that no forecast is produced and recommend collecting more consistent history. Do not invent additional periods or calculate a forecast from the descriptive chart yourself. Distinguish observed statistics from hypotheses and recommendations. Explicitly mention the small sample size when row count is below 30. Explain that top category counts are record frequencies, not metric totals. If categoryBreakdown is supplied, interpret every metric separately. The categoryBreakdown.verifiedFindings and orderedTotals are backend-computed authoritative rankings; reproduce their ordering and values exactly, and never contradict them. Do not independently guess or recalculate rankings from memory. If verifiedFindings says a category is not the lowest for a metric, do not call it the lowest. Never describe a category as having low overall performance merely because it ranks low on one metric. Explicitly distinguish total values from averages per record; averages per record are descriptive and do not establish conversion rates or causal relationships. For example, a category may have fewer enquiries but still have higher sales totals than another category; state both facts accurately. Never infer that a column named Sales is monetary revenue, units sold, or profit unless its meaning and units are provided. If a ratio is discussed, label it as a simple aggregate ratio and warn that it is not necessarily a conversion rate because the rows may not represent matched enquiry-to-sale journeys. Provide headings: 1) What the summary shows, 2) Category-level totals, 3) Data quality and limitations, 4) Useful business questions, 5) Recommended next analyses, 6) Practical actions. Include a separate time-trend interpretation in the relevant sections when timeTrend is available; otherwise say no reliable date trend was supplied. Use concise, specific language and explain when a conclusion cannot be drawn." },
       { role: "user", content: "Analyse these aggregate-only CSV statistics for a business user. Do not request or assume raw records.\n" + JSON.stringify(safeAnalysis) }
     ];
     const inference = await env.AI.run(MODEL, { messages, max_tokens: 1100, temperature: 0.15 });
