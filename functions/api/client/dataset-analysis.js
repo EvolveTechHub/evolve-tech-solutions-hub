@@ -110,7 +110,8 @@ export async function onRequestPost({ request, env }) {
     let duplicates = 0;
     for (const r of data) { const key = JSON.stringify(r); if (seen.has(key)) duplicates++; else seen.add(key); }
     const numericIndexes = columns.map((c, i) => c.type === "numeric" ? i : -1).filter(i => i >= 0).slice(0, 3);
-    const categoryIndex = columns.findIndex((c, i) => c.type !== "numeric" && c.distinct > 1 && c.distinct <= 12 && c.topValues);
+    const categoryCandidates = columns.map((c, i) => ({ c, i })).filter(x => x.c.type !== "numeric" && x.c.distinct > 1 && x.c.distinct <= 12 && x.c.topValues);
+    const categoryIndex = (categoryCandidates.find(x => /product|category|type|region|channel|segment|status/i.test(x.c.name) && !/date|time|year|month/i.test(x.c.name)) || categoryCandidates.find(x => !/date|time|year|month/i.test(x.c.name)) || categoryCandidates[0])?.i ?? -1;
     let chartData = null;
     if (categoryIndex >= 0 && numericIndexes.length) {
       const groups = new Map();
