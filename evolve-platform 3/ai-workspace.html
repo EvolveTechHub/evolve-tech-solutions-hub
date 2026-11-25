@@ -103,6 +103,14 @@ input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color
 <label class="option"><input type="checkbox" name="outputs" value="Recommendations"><span>Recommendations</span></label>
 <label class="option"><input type="checkbox" name="outputs" value="Prototype or proof of concept"><span>Prototype / proof of concept</span></label>
 </div>
+<section id="datasetPanel" hidden style="margin:22px 0;padding:18px;border:1px solid #b9dedd;border-radius:15px;background:#f4fbfa">
+<h3 style="margin:0 0 6px;color:#0a3948">Analyse a CSV dataset</h3>
+<p class="smallprint">Upload a sample or de-identified CSV (maximum 5 MB, 25,000 rows and 100 columns). Do not upload customer names, contact details, financial account data or other sensitive information. The raw file is processed in memory and is not saved.</p>
+<label for="datasetFile">CSV file</label><input id="datasetFile" type="file" accept=".csv,text/csv">
+<div class="actions"><button type="button" class="primary" id="analyseDataset">Analyse dataset</button></div>
+<p id="datasetMessage" role="status" aria-live="polite" class="smallprint"></p>
+<div id="datasetResults" hidden></div>
+</section>
 <label for="constraints">Important constraints or preferences <span class="smallprint">(optional)</span></label>
 <textarea id="constraints" maxlength="1500" style="min-height:86px" placeholder="Tools, systems, timelines, formats, standards or requirements that must be respected."></textarea>
 <div style="position:absolute;left:-10000px" aria-hidden="true"><label for="website">Leave empty</label><input id="website" autocomplete="off" tabindex="-1"></div>
@@ -190,6 +198,37 @@ function showResult(result,meta){
  panel.scrollIntoView({behavior:"smooth",block:"start"});
 }
 loadAccount();
+const datasetPanel=document.getElementById("datasetPanel");
+if(key==="predictive-analytics") datasetPanel.hidden=false;
+document.getElementById("analyseDataset").addEventListener("click",async()=>{
+ const input=document.getElementById("datasetFile"),status=document.getElementById("datasetMessage"),results=document.getElementById("datasetResults"),button=document.getElementById("analyseDataset");
+ if(!signedIn){status.textContent="Sign in to your Client Account before analysing a dataset.";return;}
+ if(!document.getElementById("privacyConsent").checked||!document.getElementById("aiConsent").checked){status.textContent="Please confirm the Privacy Notice and AI Workspace Use Policy first.";return;}
+ if(!input.files||!input.files[0]){status.textContent="Choose a CSV file first.";return;}
+ button.disabled=true;button.textContent="Analysing…";status.textContent="Checking the CSV and calculating descriptive statistics…";results.hidden=true;
+ try{
+  const body=new FormData();body.append("file",input.files[0]);
+  const response=await fetch("/api/client/dataset-analysis",{method:"POST",credentials:"same-origin",body});
+  const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||"Dataset analysis failed.");
+  const a=data.analysis;results.replaceChildren();
+  const summary=document.createElement("p");summary.textContent=a.rows.toLocaleString()+" data rows · "+a.columns+" columns · "+a.duplicateRows+" duplicate rows detected";results.append(summary);
+  const table=document.createElement("table");table.style.cssText="width:100%;border-collapse:collapse;font-size:.82rem";
+  const head=document.createElement("tr");
+  ["Column","Type","Missing","Distinct","Summary"].forEach(t=>{const th=document.createElement("th");th.textContent=t;th.style.cssText="text-align:left;padding:8px;border-bottom:1px solid #d5e5e5";head.append(th)});
+  const thead=document.createElement("thead");thead.append(head);table.append(thead);
+  const tbody=document.createElement("tbody");
+  for(const c of a.columns){
+   const tr=document.createElement("tr");
+   const detail=c.numeric?("Min "+c.numeric.min+" · Median "+c.numeric.median+" · Mean "+c.numeric.mean+" · Max "+c.numeric.max):c.topValues.map(v=>v.value+" ("+v.count+")").join(", ");
+   [c.name,c.type,String(c.missing),String(c.distinct),detail||"—"].forEach(v=>{const td=document.createElement("td");td.textContent=v;td.style.cssText="padding:8px;border-bottom:1px solid #e4eeee;vertical-align:top;overflow-wrap:anywhere";tr.append(td)});
+   tbody.append(tr);
+  }
+  table.append(tbody);results.append(table);
+  const note=document.createElement("p");note.className="smallprint";note.textContent=data.notice;results.append(note);
+  results.hidden=false;status.textContent="Dataset analysis completed. Review the summaries and column types before drawing conclusions.";
+ }catch(error){status.textContent=error.message||"Dataset analysis could not be completed.";}
+ finally{button.disabled=false;button.textContent="Analyse dataset";}
+});
 const form=document.getElementById("aiTaskForm"),review=document.getElementById("reviewPanel"),reviewContent=document.getElementById("reviewContent"),message=document.getElementById("formMessage");
 function val(id){return document.getElementById(id).value.trim()}
 function selectedOutputs(){return [...form.querySelectorAll('input[name="outputs"]:checked')].map(x=>x.value)}
