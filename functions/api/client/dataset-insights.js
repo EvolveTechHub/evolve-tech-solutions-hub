@@ -55,7 +55,17 @@ export async function onRequestPost({ request, env }) {
       columnCount: summaries.length,
       duplicateRows: Math.max(0, Math.min(25000, Number(analysis.duplicateRows) || 0)),
       columns: summaries,
-      chartAvailable: Boolean(analysis.chartData && Array.isArray(analysis.chartData.points))
+      categoryBreakdown: analysis.chartData && Array.isArray(analysis.chartData.points)
+        ? {
+            category: clean(analysis.chartData.category, 100),
+            metrics: Array.isArray(analysis.chartData.series) ? analysis.chartData.series.slice(0, 3).map(x => clean(x, 100)) : [],
+            points: analysis.chartData.points.slice(0, 12).map(point => ({
+              label: clean(point.label, 60),
+              records: Math.max(0, Math.min(25000, Number(point.count) || 0)),
+              totals: Array.isArray(point.values) ? point.values.slice(0, 3).map(v => Number.isFinite(Number(v)) ? Number(v) : 0) : []
+            }))
+          }
+        : null
     };
     const recent = await env.DB.prepare(
       "SELECT COUNT(*) AS total FROM client_ai_tasks WHERE client_account_id=? AND created_at >= ?"
@@ -63,7 +73,7 @@ export async function onRequestPost({ request, env }) {
     if ((recent?.total || 0) >= 3) return clientJson({ ok: false, message: "You have reached the initial limit of 3 AI tasks in 24 hours. Please try again later." }, 429);
 
     const messages = [
-      { role: "system", content: "You are Evolve AI, a careful business data analyst. Interpret only the supplied aggregate statistics. You have not seen the raw dataset and must not imply otherwise. Do not invent trends over time, correlations, causal effects, forecasts, customer characteristics, or business outcomes that the summary cannot support. Distinguish observed statistics from hypotheses and recommendations. Explicitly mention the small sample size when row count is below 30. Explain that top category counts are record frequencies, not sales totals. Provide headings: 1) What the summary shows, 2) Data quality and limitations, 3) Useful business questions, 4) Recommended next analyses, 5) Practical actions. Use concise, specific language and explain when a conclusion cannot be drawn." },
+      { role: "system", content: "You are Evolve AI, a careful business data analyst. Interpret only the supplied aggregate statistics. You have not seen the raw dataset and must not imply otherwise. Do not invent trends over time, correlations, causal effects, forecasts, customer characteristics, or business outcomes that the summary cannot support. Distinguish observed statistics from hypotheses and recommendations. Explicitly mention the small sample size when row count is below 30. Explain that top category counts are record frequencies, not sales totals. If categoryBreakdown is supplied, interpret its per-category record counts and numeric column totals accurately, identify them as sums from the uploaded rows, and avoid assuming a metric represents revenue unless its column name and context support that. Provide headings: 1) What the summary shows, 2) Category-level totals, 3) Data quality and limitations, 4) Useful business questions, 5) Recommended next analyses, 6) Practical actions. Use concise, specific language and explain when a conclusion cannot be drawn." },
       { role: "user", content: "Analyse these aggregate-only CSV statistics for a business user. Do not request or assume raw records.\n" + JSON.stringify(safeAnalysis) }
     ];
     const inference = await env.AI.run(MODEL, { messages, max_tokens: 1100, temperature: 0.15 });
