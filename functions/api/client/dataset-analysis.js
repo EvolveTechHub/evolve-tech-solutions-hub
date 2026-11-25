@@ -109,6 +109,25 @@ export async function onRequestPost({ request, env }) {
     const seen = new Set();
     let duplicates = 0;
     for (const r of data) { const key = JSON.stringify(r); if (seen.has(key)) duplicates++; else seen.add(key); }
+    const numericIndexes = columns.map((c, i) => c.type === "numeric" ? i : -1).filter(i => i >= 0).slice(0, 3);
+    const categoryIndex = columns.findIndex((c, i) => c.type !== "numeric" && c.distinct > 1 && c.distinct <= 12 && c.topValues);
+    let chartData = null;
+    if (categoryIndex >= 0 && numericIndexes.length) {
+      const groups = new Map();
+      for (const row of data) {
+        const label = row[categoryIndex] || "(blank)";
+        if (!groups.has(label)) groups.set(label, numericIndexes.map(() => 0));
+        numericIndexes.forEach((columnIndex, seriesIndex) => {
+          const value = numeric(row[columnIndex]);
+          if (value !== null) groups.get(label)[seriesIndex] += value;
+        });
+      }
+      chartData = {
+        category: headers[categoryIndex],
+        series: numericIndexes.map(i => headers[i]),
+        points: [...groups.entries()].slice(0, 12).map(([label, values]) => ({ label: label.slice(0, 60), values: values.map(v => Number(v.toFixed(2))) }))
+      };
+    }
     return clientJson({
       ok: true,
       analysis: {
@@ -117,7 +136,8 @@ export async function onRequestPost({ request, env }) {
         columnCount: headers.length,
         duplicateRows: duplicates,
         preview,
-        columnSummaries: columns
+        columnSummaries: columns,
+        chartData
       },
       notice: "Analysis was computed from the uploaded CSV in memory. The raw file was not saved. Review column types and data quality before using the results."
     });
