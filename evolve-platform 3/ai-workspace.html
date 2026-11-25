@@ -221,7 +221,7 @@ function reportBrand(){
 function managementReportLines(){
  const a=lastDatasetAnalysis;if(!a)return [];
  const lines=[];const add=(heading,items=[])=>{lines.push("",heading.toUpperCase());for(const item of items){for(const wrapped of wrapReportLine(item))lines.push(wrapped);}};
- lines.push("ANALYTICS MANAGEMENT REPORT","Prepared for: "+reportBrand(),"Generated: "+new Date().toLocaleString(),"");
+ lines.push("Prepared for: "+reportBrand(),"Generated: "+new Date().toLocaleString(),"");
  add("1. Executive summary",[
   "This report summarises "+a.rows+" uploaded data rows across "+a.columnSummaries.length+" columns.",
   "The analysis detected "+a.duplicateRows+" duplicate rows. Column-level missing values and category totals are summarised below.",
@@ -242,7 +242,7 @@ function managementReportLines(){
   "Date field: "+trend.dateColumn+". Grouping: "+trend.granularity+". Periods assessed: "+trend.points.length+".",
   "Anomaly screening status: "+(trend.anomalies?.status||"not available")+". Method: "+(trend.anomalies?.method||"not available")+".",
   ...(trend.anomalies?.findings||[]).map(x=>x.period+" | "+x.metric+" | observed "+x.value+" | dataset median "+x.median+" | "+x.direction),
-  ...((trend.anomalyContext?.findings||[]).map(x=>x.period+": "+(x.topCategory||"No leading category")+" represents "+(x.topCategorySharePercent??"not available")+"% of uploaded Sales records for that date. "+(x.enquiries?.sameDayTotal!==null&&x.enquiries?.sameDayTotal!==undefined?"Enquiries are shown separately: "+x.enquiries.sameDayTotal+" that date versus historical daily median "+x.enquiries.historicalDailyMedian+".":x.enquiries?.reason||"No Enquiries comparison available.")))
+  ...((trend.anomalyContext?.findings||[]).map(x=>x.period+": "+(x.topCategory||"The leading category")+" is the largest contributor among the uploaded records for this date (share of uploaded records: "+(x.topCategorySharePercent??"not available")+"%). This is not a measure of its share of all company sales. "+(x.enquiries?.sameDayTotal!==null&&x.enquiries?.sameDayTotal!==undefined?"Enquiries are shown separately: "+x.enquiries.sameDayTotal+" that date versus historical daily median "+x.enquiries.historicalDailyMedian+".":x.enquiries?.reason||"No Enquiries comparison available.")))
  ]);
  else add("4. Trends and anomalies",["A reliable date-based trend was not available."]);
  const forecast=a.forecastData;
@@ -289,7 +289,8 @@ async function reportLogoJpeg(){
 }
 function downloadManagementPdf(){
  const lines=managementReportLines();if(!lines.length)return;
- const pages=[];for(let i=0;i<lines.length;i+=42)pages.push(lines.slice(i,i+42));
+ const blocks=[];let block=[];for(const line of lines){if(!line){if(block.length){blocks.push(block);block=[];}continue;}if((line.match(/^[1-8]\\. /)||line==="AI-GENERATED BUSINESS INSIGHTS")&&block.length){blocks.push(block);block=[];}block.push(line);}if(block.length)blocks.push(block);
+ const pages=[[]];let pageLines=0;for(const item of blocks){let remaining=[...item];while(remaining.length){const room=42-pageLines;if(room===0){pages.push([]);pageLines=0;continue;}if(remaining.length<=room){pages[pages.length-1].push(...remaining);pageLines+=remaining.length;remaining=[];}else if(pageLines>0){pages.push([]);pageLines=0;}else{const part=remaining.splice(0,42);pages[pages.length-1].push(...part);pageLines=part.length;}}}
  const enc=new TextEncoder(),objects=[];const addText=value=>{objects.push(enc.encode(value));return objects.length;};
  const catalogId=addText(""),pagesId=addText(""),fontId=addText("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"),boldFontId=addText("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
  const logo=document.getElementById("reportLogo")?.files?.[0];
