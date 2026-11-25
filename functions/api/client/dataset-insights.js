@@ -120,8 +120,8 @@ export async function onRequestPost({ request, env }) {
                 trendMae: Number.isFinite(Number(metric.validation.trendMae)) ? Number(metric.validation.trendMae) : null,
                 naiveMae: Number.isFinite(Number(metric.validation.naiveMae)) ? Number(metric.validation.naiveMae) : null,
                 selectedMae: Number.isFinite(Number(metric.validation.selectedMae)) ? Number(metric.validation.selectedMae) : null,
-                wapePercent: Number.isFinite(Number(metric.validation.wapePercent)) ? Number(metric.validation.wapePercent) : null,
-                skillVsNaivePercent: Number.isFinite(Number(metric.validation.skillVsNaivePercent)) ? Number(metric.validation.skillVsNaivePercent) : null,
+                wapePercent: metric.validation.wapePercent !== null && metric.validation.wapePercent !== undefined && Number.isFinite(Number(metric.validation.wapePercent)) ? Number(metric.validation.wapePercent) : null,
+                skillVsNaivePercent: metric.validation.skillVsNaivePercent !== null && metric.validation.skillVsNaivePercent !== undefined && Number.isFinite(Number(metric.validation.skillVsNaivePercent)) ? Number(metric.validation.skillVsNaivePercent) : null,
                 validationRmse: Number.isFinite(Number(metric.validation.validationRmse)) ? Number(metric.validation.validationRmse) : null,
                 method: clean(metric.validation.method, 100)
               } : null,
