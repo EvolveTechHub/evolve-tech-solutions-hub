@@ -220,7 +220,7 @@ function reportBrand(){
 }
 function managementReportLines(){
  const a=lastDatasetAnalysis;if(!a)return [];
- const lines=[];const add=(heading,items=[])=>{lines.push("",heading.toUpperCase());for(const item of items){for(const wrapped of wrapReportLine(item))lines.push(wrapped);}};
+  const lines=[];const add=(heading,items=[])=>{lines.push("",heading.toUpperCase());for(const item of items){lines.push("");for(const wrapped of wrapReportLine(item))lines.push(wrapped);}};
  lines.push("Prepared for: "+reportBrand(),"Generated: "+new Date().toLocaleString(),"");
  add("1. Executive summary",[
   "This report summarises "+a.rows+" uploaded data rows across "+a.columnSummaries.length+" columns.",
@@ -242,7 +242,7 @@ function managementReportLines(){
   "Date field: "+trend.dateColumn+". Grouping: "+trend.granularity+". Periods assessed: "+trend.points.length+".",
   "Anomaly screening status: "+(trend.anomalies?.status||"not available")+". Method: "+String(trend.anomalies?.method||"not available").replace(/[.]+$/,"")+".",
   ...(trend.anomalies?.findings||[]).map(x=>x.period+" | "+x.metric+" | observed "+x.value+" | dataset median "+x.median+" | "+x.direction),
-  ...((trend.anomalyContext?.findings||[]).map(x=>x.period+": "+(x.topCategory||"The leading category")+" is the largest contributor among the uploaded records for this date (share of uploaded records: "+(x.topCategorySharePercent??"not available")+"%). This is not a measure of its share of all company sales. "+(x.enquiries?.sameDayTotal!==null&&x.enquiries?.sameDayTotal!==undefined?"Enquiries are shown separately: "+x.enquiries.sameDayTotal+" that date versus historical daily median "+x.enquiries.historicalDailyMedian+".":x.enquiries?.reason||"No Enquiries comparison available.")))
+   ...((trend.anomalyContext?.findings||[]).map(x=>x.period+": "+(x.topCategory||"The leading category")+" represents "+(x.topCategorySharePercent??"an unavailable share")+"% of this date's recorded Sales total in the uploaded dataset. This is not a measure of its share of all company sales. "+(x.enquiries?.sameDayTotal!==null&&x.enquiries?.sameDayTotal!==undefined?"Enquiries are shown separately: "+x.enquiries.sameDayTotal+" that date versus historical daily median "+x.enquiries.historicalDailyMedian+".":x.enquiries?.reason||"No Enquiries comparison available.")))
  ]);
  else add("4. Trends and anomalies",["A reliable date-based trend was not available."]);
  const forecast=a.forecastData;
@@ -289,8 +289,10 @@ async function reportLogoJpeg(){
 }
 function downloadManagementPdf(){
  const lines=managementReportLines();if(!lines.length)return;
- const blocks=[];let block=[];for(const line of lines){if(!line){if(block.length){blocks.push(block);block=[];}continue;}if((line.match(/^[1-8]\\. /)||line==="AI-GENERATED BUSINESS INSIGHTS")&&block.length){blocks.push(block);block=[];}block.push(line);}if(block.length)blocks.push(block);
- const pages=[[]];let pageLines=0;for(const item of blocks){let remaining=[...item];while(remaining.length){const room=42-pageLines;if(room===0){pages.push([]);pageLines=0;continue;}if(remaining.length<=room){pages[pages.length-1].push(...remaining);pageLines+=remaining.length;remaining=[];}else if(pageLines>0){pages.push([]);pageLines=0;}else{const part=remaining.splice(0,42);pages[pages.length-1].push(...part);pageLines=part.length;}}}
+  const paragraphs=[];let paragraph=[];for(const line of lines){if(!line.trim()){if(paragraph.length){paragraphs.push(paragraph);paragraph=[];}continue;}paragraph.push(line);}if(paragraph.length)paragraphs.push(paragraph);
+  const isHeading=part=>part.length===1&&(/^[1-8]\.\s/.test(part[0])||part[0]==="AI-GENERATED BUSINESS INSIGHTS");
+  const blocks=[];for(let i=0;i<paragraphs.length;i++){if(isHeading(paragraphs[i])){const next=paragraphs[i+1]||[];blocks.push([...paragraphs[i],...next]);if(next.length)i++;}else blocks.push(paragraphs[i]);}
+  const weight=line=>isHeading([line])?2:1;const pages=[[]];let pageWeight=0;for(const item of blocks){let remaining=[...item];while(remaining.length){const room=38-pageWeight;const cost=remaining.reduce((sum,line)=>sum+weight(line),0);if(cost<=room){pages[pages.length-1].push(...remaining);pageWeight+=cost;remaining=[];}else if(pageWeight>0){pages.push([]);pageWeight=0;}else{let take=0,used=0;while(take<remaining.length&&used+weight(remaining[take])<=38){used+=weight(remaining[take]);take++;}if(!take)take=1;pages[pages.length-1].push(...remaining.splice(0,take));pageWeight=used;if(remaining.length){pages.push([]);pageWeight=0;}}}}
  const enc=new TextEncoder(),objects=[];const addText=value=>{objects.push(enc.encode(value));return objects.length;};
  const catalogId=addText(""),pagesId=addText(""),fontId=addText("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"),boldFontId=addText("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
  const logo=document.getElementById("reportLogo")?.files?.[0];
@@ -440,7 +442,7 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
      const heading=document.createElement("strong");heading.textContent=item.period+" · "+(item.categoryMeaning==="product"?"Product breakdown":"Category breakdown");wrap.append(heading);
      if(item.status!=="assessed"){const msg=document.createElement("p");msg.className="smallprint";msg.textContent=item.reason||"The breakdown could not be calculated.";wrap.append(msg);}
      else{
-      const summary=document.createElement("p");summary.className="smallprint";summary.textContent="Sales total in uploaded records: "+item.salesTotal.toLocaleString()+" · Largest recorded contributor: "+(item.topCategory||"not available")+(item.topCategorySharePercent===null?"":" ("+item.topCategorySharePercent+"% of uploaded Sales records for this date)");wrap.append(summary);
+       const summary=document.createElement("p");summary.className="smallprint";summary.textContent="Sales total in uploaded records: "+item.salesTotal.toLocaleString()+" · Largest recorded contributor: "+(item.topCategory||"not available")+(item.topCategorySharePercent===null?"":" ("+item.topCategorySharePercent+"% of this date's recorded Sales total in the uploaded dataset)");wrap.append(summary);
       const table=document.createElement("table");table.style.cssText="width:100%;border-collapse:collapse;font-size:.82rem";
       const head=document.createElement("tr");["Product/category","Day total","Share","Median on recorded days","Recorded days","Compared with own median"].forEach(label=>{const th=document.createElement("th");th.textContent=label;th.style.cssText="text-align:left;padding:7px;border-bottom:1px solid #d5e5e5";head.append(th)});
       const body=document.createElement("tbody");for(const cat of item.categories||[]){const tr=document.createElement("tr");[cat.label,cat.total.toLocaleString(),cat.sharePercent===null?"—":cat.sharePercent+"%",cat.typicalDailyMedian.toLocaleString(),String(cat.observedDays),cat.comparedWithMedian].forEach(value=>{const td=document.createElement("td");td.textContent=String(value);td.style.cssText="padding:7px;border-bottom:1px solid #e4eeee";tr.append(td)});body.append(tr)}table.append(head,body);wrap.append(table);
