@@ -68,7 +68,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color
 <p>Describe the outcome you need in ordinary language. Shape a task around your organisation, preferred deliverables and operating requirements. Evolve's specialised AI workspaces are being developed to support complex, multi-step enterprise work.</p>
 </section>
 <div class="engine-note" role="note">
-<div aria-hidden="true">ⓘ</div><div><strong>AI text task runner · Preview release</strong><p>Signed-in clients can run text-based AI analysis and save results to their account. CSV descriptive analysis, category comparison charts, AI-generated aggregate insights and an experimental baseline forecast are available in the Data Analytics workspace. Forecasting requires at least 12 consecutive periods and includes validation and indicative uncertainty ranges. Excel uploads, external integrations, code execution and automatic deployment are not enabled. Review all results before operational use.</p></div>
+<div aria-hidden="true">ⓘ</div><div><strong>AI text task runner · Preview release</strong><p>Signed-in clients can run text-based AI analysis and save results to their account. CSV descriptive analysis, category comparison charts, AI-generated aggregate insights and an experimental baseline forecast are available in the Data Analytics workspace. Forecasting requires at least 24 consecutive periods, consistent date precision and complete metric values. Six rolling validation periods are used to compare models; low-confidence results are clearly flagged. Excel uploads, external integrations, code execution and automatic deployment are not enabled. Review all results before operational use.</p></div>
 </div>
 <div class="layout">
 <section class="panel">
@@ -139,7 +139,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color
 <p><a href="workspace.html">Open Client Workspace →</a></p>
 <hr style="border:0;border-top:1px solid #e3ebee;margin:22px 0">
 <h3>Data and files</h3>
-<p class="smallprint">The Data Analytics workspace accepts CSV files for in-memory descriptive analysis, category comparison charts, AI interpretation of aggregate statistics and an experimental three-period baseline forecast when at least 12 consecutive daily or monthly observations are available. Forecasts include a small holdout check and indicative uncertainty ranges; they are not guarantees. Raw files are not saved or sent to the AI model. Excel uploads are not enabled. Use sample or de-identified data only.</p>
+<p class="smallprint">The Data Analytics workspace accepts CSV files for in-memory descriptive analysis, category comparison charts, AI interpretation of aggregate statistics and an experimental three-period baseline forecast when at least 24 consecutive daily or monthly observations are available, with consistent date precision and complete metric values. Forecasts use six rolling validation periods to compare a linear trend against a last-period baseline; the trend is selected only when it improves validation error by at least 10%. Indicative ranges are not formal prediction intervals or guarantees. Raw files are not saved or sent to the AI model. Excel uploads are not enabled. Use sample or de-identified data only.</p>
 </aside>
 </div>
 </main>
