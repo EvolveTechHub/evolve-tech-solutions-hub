@@ -199,19 +199,19 @@ function showResult(result,meta){
 }
 
 function reportText(value){return String(value??"").replace(/[^\x20-\x7E]/g," ").replace(/\s+/g," ").trim();}
-function wrapReportLine(value,max=94){
+function wrapReportLine(value,max=92){
  const words=reportText(value).split(" ");const lines=[];let line="";
  for(const word of words){if(!word)continue;if((line+" "+word).trim().length>max){if(line)lines.push(line);line=word;}else line=(line+" "+word).trim();}
  if(line)lines.push(line);return lines;
 }
 function managementReportLines(){
  const a=lastDatasetAnalysis;if(!a)return [];
- const lines=[];const add=(heading,items=[])=>{lines.push("",heading.toUpperCase(),"-".repeat(Math.min(heading.length,70)));for(const item of items){for(const wrapped of wrapReportLine(item))lines.push(wrapped);}};
+ const lines=[];const add=(heading,items=[])=>{lines.push("",heading.toUpperCase());for(const item of items){for(const wrapped of wrapReportLine(item))lines.push(wrapped);}};
  lines.push("EVOLVE TECHNOLOGY SOLUTIONS HUB","DATA ANALYTICS | MANAGEMENT REPORT","Generated: "+new Date().toLocaleString(),"");
  add("1. Executive summary",[
   "This report summarises "+a.rows+" uploaded data rows across "+a.columnSummaries.length+" columns.",
   "The analysis detected "+a.duplicateRows+" duplicate rows. Column-level missing values and category totals are summarised below.",
-  "Findings are descriptive of the uploaded dataset and should be validated against source records before operational decisions."
+  "Findings describe only the uploaded dataset. Confirm source coverage and definitions before making operational decisions."
  ]);
  add("2. Key performance indicators",a.columnSummaries.map(c=>{
   if(c.numeric)return c.name+": minimum "+c.numeric.min+", median "+c.numeric.median+", mean "+c.numeric.mean+", maximum "+c.numeric.max+", missing "+c.missing+".";
@@ -219,8 +219,8 @@ function managementReportLines(){
  }).concat(["Total records: "+a.rows+". Duplicate rows: "+a.duplicateRows+"."]));
  if(a.chartData){
   add("3. Product or category performance",[
-   "Category field: "+a.chartData.category+". Totals are calculated from uploaded records.",
-   "Metrics: "+a.chartData.series.join(", "),
+   "Category field: "+a.chartData.category+". Totals below are calculated only from records included in the uploaded file.",
+   "Measures: "+a.chartData.series.join(", "),
    ...a.chartData.points.map(p=>p.label+" | records: "+p.count+" | "+a.chartData.series.map((name,i)=>name+": "+p.values[i]).join(" | "))
   ]);
  }else add("3. Product or category performance",["No suitable category comparison was generated for this dataset."]);
@@ -230,13 +230,14 @@ function managementReportLines(){
    "Date field: "+trend.dateColumn+". Grouping: "+trend.granularity+". Periods assessed: "+trend.points.length+".",
    "Anomaly screening status: "+(trend.anomalies?.status||"not available")+". Method: "+(trend.anomalies?.method||"not available")+".",
    ...(trend.anomalies?.findings||[]).map(x=>x.period+" | "+x.metric+" | observed "+x.value+" | dataset median "+x.median+" | "+x.direction),
-   ...((trend.anomalyContext?.findings||[]).map(x=>x.period+": "+(x.topCategory||"No leading category")+" accounts for "+(x.topCategorySharePercent??"not available")+"% of Sales recorded that date. "+(x.enquiries?.sameDayTotal!==null&&x.enquiries?.sameDayTotal!==undefined?"Enquiries: "+x.enquiries.sameDayTotal+"; historical daily median: "+x.enquiries.historicalDailyMedian+".":x.enquiries?.reason||"No Enquiries comparison available.")))
+   ...((trend.anomalyContext?.findings||[]).map(x=>x.period+": "+(x.topCategory||"No leading category")+" represents "+(x.topCategorySharePercent??"not available")+"% of uploaded Sales records for that date. "+(x.enquiries?.sameDayTotal!==null&&x.enquiries?.sameDayTotal!==undefined?"Enquiries are shown separately: "+x.enquiries.sameDayTotal+" that date versus historical daily median "+x.enquiries.historicalDailyMedian+".":x.enquiries?.reason||"No Enquiries comparison available.")))
   ]);
  }else add("4. Trends and anomalies",["A reliable date-based trend was not available."]);
  const forecast=a.forecastData;
  if(forecast?.metrics){
   add("5. Forecast results and limitations",[
    "Forecast status: "+forecast.status+". Historical periods: "+(forecast.historicalPeriods??"not available")+". Validation periods: "+(forecast.validationPeriods??"not available")+".",
+   "Forecast labels extend the uploaded dataset's final period; they are not necessarily forecasts for today's calendar dates.",
    ...forecast.metrics.map(m=>m.metric+": "+(m.status==="available"?(m.model+"; selected MAE "+m.validation?.selectedMae+"; WAPE "+m.validation?.wapePercent+"%; quality "+m.quality+". Forecasts: "+(m.forecasts||[]).map(p=>p.period+" "+p.estimate+" (indicative "+p.lower+" to "+p.upper+")").join("; ")):("not available: "+m.reason))),
    "Forecasts are experimental. Indicative ranges are not formal prediction intervals or guarantees. Models do not account for seasonality, promotions, market changes or causal factors."
   ]);
@@ -247,44 +248,55 @@ function managementReportLines(){
   qualityIssues.length?"Data completeness risk: missing values were detected in "+qualityIssues.map(c=>c.name).join(", ")+".":"No missing values were reported in the analysed columns.",
   a.duplicateRows?"Duplicate-record risk: "+a.duplicateRows+" duplicate rows were detected and should be reviewed.":"No duplicate rows were detected.",
   highForecast.length?"Forecast risk: "+highForecast.map(m=>m.metric).join(", ")+" has high validation error; do not use these forecasts as a primary basis for decisions.":"Review validation metrics before using any forecast.",
-  a.chartData?"Opportunity: category-level totals provide a basis for further product or segment investigation.":"Opportunity: improve category labels or include a suitable categorical field to enable comparison.",
+  a.chartData?"Opportunity: category-level totals provide a basis for further investigation, within the coverage of the uploaded records.":"Opportunity: include a suitable categorical field to enable comparison.",
   "Statistical anomaly flags indicate unusual values, not proven errors, causes or business events."
  ]);
  add("7. Evidence-based recommendations",[
-  "Validate flagged dates and unusually high or low values against source transactions and reporting definitions.",
-  "Confirm whether each numeric measure represents units, currency, revenue, orders or another business measure before interpreting its commercial meaning.",
+  "Validate flagged dates and unusual values against source transactions and reporting definitions.",
+  "Confirm whether each numeric measure represents units, currency, revenue, orders or another business measure.",
   "Compare categories over a longer and more representative period before changing pricing, inventory, staffing or marketing plans.",
-  "Collect more historical observations and evaluate forecast performance on additional holdout periods before relying on predictive outputs."
+  "Collect more historical observations and evaluate predictive performance on additional holdout periods."
  ]);
- const actions=[
+ add("8. Management action plan",[
   "Data owner: reconcile flagged dates and confirm source records.",
   "Business analyst: confirm metric definitions, units and reporting coverage.",
-  "Operations lead: review category performance with context on costs, margins, stock and demand.",
-  "Management: approve any operational changes only after validating the evidence and considering other relevant information."
- ];
- add("8. Management action plan",actions);
- add("AI-generated business insights",latestDatasetInsights?latestDatasetInsights.split(/\r?\n/):["No AI business insights were added to this report. Run 'Generate AI business insights' after analysis, then download the report again to include them."]);
- lines.push("","IMPORTANT: This report is an analytical aid, not an audit, guarantee, or substitute for professional judgement. Verify findings against original records.");
+  "Operations lead: review category performance alongside costs, margins, stock and demand.",
+  "Management: approve operational changes only after validating evidence and considering other relevant information."
+ ]);
+ add("AI-generated business insights",latestDatasetInsights?latestDatasetInsights.split(/\r?\n/):["No AI business insights were added. Generate insights after analysis, then download the report again to include them."]);
+ lines.push("","IMPORTANT: This report is an analytical aid, not an audit or guarantee. Verify findings against original records.");
  return lines;
 }
 function downloadManagementPdf(){
  const lines=managementReportLines();if(!lines.length)return;
- const pages=[];for(let i=0;i<lines.length;i+=49)pages.push(lines.slice(i,i+49));
+ const pages=[];for(let i=0;i<lines.length;i+=43)pages.push(lines.slice(i,i+43));
  const objects=[];const addObject=value=>{objects.push(value);return objects.length;};
  const catalogId=addObject("");const pagesId=addObject("");const fontId=addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+ const boldFontId=addObject("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
  const pageIds=[];
+ function esc(s){return reportText(s).replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");}
+ function textOp(s,x,y,size,font,color){return "BT\n/"+font+" "+size+" Tf\n"+color+" rg\n1 0 0 1 "+x+" "+y+" Tm\n("+esc(s)+") Tj\nET\n";}
  for(let p=0;p<pages.length;p++){
-  let stream="BT\n/F1 9 Tf\n48 760 Td\n";
-  pages[p].forEach((line,index)=>{
-   const safe=reportText(line).replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");
-   if(index===0&&p===0)stream+="/F1 16 Tf\n";
-   else if(line.endsWith("1. Executive summary")||/^[1-8]\. /.test(line))stream+="/F1 11 Tf\n";
-   else stream+="/F1 9 Tf\n";
-   stream+="("+safe+") Tj\n0 -14 Td\n";
-  });
-  stream+="ET";
-  const contentId=addObject("<< /Length "+stream.length+" >>\nstream\n"+stream+"\nendstream");
-  const pageId=addObject("<< /Type /Page /Parent "+pagesId+" 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 "+fontId+" 0 R >> >> /Contents "+contentId+" 0 R >>");
+  let stream="";
+  stream+="0.035 0.20 0.24 rg\n0 0 612 792 re f\n";
+  stream+=textOp("EVOLVE TECHNOLOGY SOLUTIONS HUB",48,755,9,"F2","1 1 1");
+  stream+="0.10 0.35 0.39 rg\n42 724 528 2 re f\n";
+  let y=700;
+  for(const line of pages[p]){
+   if(!line){y-=8;continue;}
+   const isHeading=/^[1-8]\. /.test(line)||line==="AI-GENERATED BUSINESS INSIGHTS";
+   if(isHeading){
+    stream+="0.91 0.96 0.96 rg\n42 "+(y-7)+" 528 22 re f\n";
+    stream+=textOp(line,50,y,10,"F2","0.035 0.20 0.24");y-=27;
+   }else{
+    stream+=textOp(line,50,y,8.5,"F1","0.12 0.18 0.20");y-=14;
+   }
+  }
+  stream+="0.10 0.35 0.39 rg\n42 43 528 1 re f\n";
+  stream+=textOp("CONFIDENTIAL | Prepared from the dataset supplied for this analysis",48,28,7,"F1","0.35 0.42 0.44");
+  stream+=textOp("Page "+(p+1)+" of "+pages.length,500,28,7,"F1","0.35 0.42 0.44");
+  const contentId=addObject("<< /Length "+stream.length+" >>\nstream\n"+stream+"endstream");
+  const pageId=addObject("<< /Type /Page /Parent "+pagesId+" 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 "+fontId+" 0 R /F2 "+boldFontId+" 0 R >> >> /Contents "+contentId+" 0 R >>");
   pageIds.push(pageId);
  }
  objects[catalogId-1]="<< /Type /Catalog /Pages "+pagesId+" 0 R >>";
@@ -296,7 +308,6 @@ function downloadManagementPdf(){
  pdf+="trailer\n<< /Size "+(objects.length+1)+" /Root "+catalogId+" 0 R >>\nstartxref\n"+xref+"\n%%EOF";
  const blob=new Blob([pdf],{type:"application/pdf"});const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download="Evolve-Data-Analytics-Management-Report.pdf";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-
 loadAccount();
 const datasetPanel=document.getElementById("datasetPanel");
 if(key==="predictive-analytics") datasetPanel.hidden=false;
