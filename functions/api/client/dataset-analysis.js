@@ -109,6 +109,61 @@ function nextPeriod(label, granularity, steps) {
   return date.toISOString().slice(0, 10);
 }
 
+
+function detectAnomalies(points, series) {
+  if (!Array.isArray(points) || points.length < 8) {
+    return { status: "insufficient_history", minimumPeriods: 8, findings: [] };
+  }
+  const findings = [];
+  for (let metricIndex = 0; metricIndex < Math.min(series.length, 3); metricIndex++) {
+    const values = points.map(point => Number(point.values[metricIndex])).filter(Number.isFinite);
+    if (values.length < 8) continue;
+    const sorted = [...values].sort((a, b) => a - b);
+    const median = sorted.length % 2
+      ? sorted[(sorted.length - 1) / 2]
+      : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
+    const deviations = values.map(value => Math.abs(value - median)).sort((a, b) => a - b);
+    const mad = deviations.length % 2
+      ? deviations[(deviations.length - 1) / 2]
+      : (deviations[deviations.length / 2 - 1] + deviations[deviations.length / 2]) / 2;
+    let lower = null, upper = null, method = "Modified z-score (median absolute deviation)";
+    if (mad > 0) {
+      const scores = values.map(value => 0.6745 * (value - median) / mad);
+      values.forEach((value, index) => {
+        if (Math.abs(scores[index]) >= 3.5) findings.push({
+          period: points[index].date, metric: series[metricIndex],
+          value: Number(value.toFixed(2)), median: Number(median.toFixed(2)),
+          score: Number(scores[index].toFixed(2)),
+          direction: value > median ? "above" : "below", method
+        });
+      });
+    } else {
+      const q1 = sorted[Math.floor((sorted.length - 1) * 0.25)];
+      const q3 = sorted[Math.floor((sorted.length - 1) * 0.75)];
+      const iqr = q3 - q1;
+      if (iqr > 0) {
+        lower = q1 - 1.5 * iqr;
+        upper = q3 + 1.5 * iqr;
+        method = "Interquartile range (1.5 × IQR)";
+        values.forEach((value, index) => {
+          if (value < lower || value > upper) findings.push({
+            period: points[index].date, metric: series[metricIndex],
+            value: Number(value.toFixed(2)), median: Number(median.toFixed(2)),
+            lowerFence: Number(lower.toFixed(2)), upperFence: Number(upper.toFixed(2)),
+            direction: value > upper ? "above" : "below", method
+          });
+        });
+      }
+    }
+  }
+  return {
+    status: "assessed",
+    method: "Robust statistical screening of grouped period totals; thresholds depend on the metric distribution.",
+    periodsAssessed: points.length,
+    findings: findings.slice(0, 30)
+  };
+}
+
 function buildForecast(trendData) {
   const minimumPeriods = 24;
   const holdout = 6;
@@ -327,6 +382,7 @@ export async function onRequestPost({ request, env }) {
         }))
       };
     }
+    if (trendData) trendData.anomalies = detectAnomalies(trendData.points, trendData.series);
     return clientJson({
       ok: true,
       analysis: {
