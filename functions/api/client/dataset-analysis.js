@@ -50,13 +50,13 @@ function parseCsv(text) {
 
 function dateKey(value) {
   const v = String(value || "").trim();
-  let m = v.match(/^(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})(?:[Tt ].*)?$/);
+  let m = v.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[Tt ].*)?$/);
   if (m) {
     const y = Number(m[1]), month = Number(m[2]), day = Number(m[3]);
     const d = new Date(Date.UTC(y, month - 1, day));
     if (d.getUTCFullYear() === y && d.getUTCMonth() === month - 1 && d.getUTCDate() === day) return d.toISOString().slice(0, 10);
   }
-  m = v.match(/^(\\d{1,2})[/-](\\d{1,2})[/-](\\d{4})$/);
+  m = v.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
   if (m) {
     const a = Number(m[1]), b = Number(m[2]), y = Number(m[3]);
     const month = a > 12 ? b : b > 12 ? a : 0;
@@ -66,7 +66,7 @@ function dateKey(value) {
       if (d.getUTCFullYear() === y && d.getUTCMonth() === month - 1 && d.getUTCDate() === day) return d.toISOString().slice(0, 10);
     }
   }
-  m = v.match(/^(\\d{4})[-/](\\d{1,2})$/);
+  m = v.match(/^(\d{4})[-/](\d{1,2})$/);
   if (m) {
     const y = Number(m[1]), month = Number(m[2]);
     if (month >= 1 && month <= 12) return String(y).padStart(4, "0") + "-" + String(month).padStart(2, "0");
