@@ -211,7 +211,7 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
   const response=await fetch("/api/client/dataset-analysis",{method:"POST",credentials:"same-origin",body});
   const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||"Dataset analysis failed.");
   const a=data.analysis;results.replaceChildren();
-  const summary=document.createElement("p");summary.textContent=a.rows.toLocaleString()+" data rows · "+a.columnCount+" columns · "+a.duplicateRows+" duplicate rows detected";results.append(summary);
+  const summary=document.createElement("p");summary.textContent=a.rows.toLocaleString()+" data rows · "+a.columnSummaries.length+" columns · "+a.duplicateRows+" duplicate rows detected";results.append(summary);
   const table=document.createElement("table");table.style.cssText="width:100%;border-collapse:collapse;font-size:.82rem";
   const head=document.createElement("tr");
   ["Column","Type","Missing","Distinct","Summary"].forEach(t=>{const th=document.createElement("th");th.textContent=t;th.style.cssText="text-align:left;padding:8px;border-bottom:1px solid #d5e5e5";head.append(th)});
