@@ -117,16 +117,22 @@ export async function onRequestPost({ request, env }) {
       const groups = new Map();
       for (const row of data) {
         const label = row[categoryIndex] || "(blank)";
-        if (!groups.has(label)) groups.set(label, numericIndexes.map(() => 0));
+        if (!groups.has(label)) groups.set(label, { count: 0, sums: numericIndexes.map(() => 0) });
+        const group = groups.get(label);
+        group.count++;
         numericIndexes.forEach((columnIndex, seriesIndex) => {
           const value = numeric(row[columnIndex]);
-          if (value !== null) groups.get(label)[seriesIndex] += value;
+          if (value !== null) group.sums[seriesIndex] += value;
         });
       }
       chartData = {
         category: headers[categoryIndex],
         series: numericIndexes.map(i => headers[i]),
-        points: [...groups.entries()].slice(0, 12).map(([label, values]) => ({ label: label.slice(0, 60), values: values.map(v => Number(v.toFixed(2))) }))
+        points: [...groups.entries()].slice(0, 12).map(([label, group]) => ({
+          label: label.slice(0, 60),
+          count: group.count,
+          values: group.sums.map(v => Number(v.toFixed(2)))
+        }))
       };
     }
     return clientJson({
