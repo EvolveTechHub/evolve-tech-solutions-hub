@@ -82,6 +82,94 @@ function numeric(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+
+function linearFit(values) {
+  const n = values.length;
+  const meanX = (n - 1) / 2;
+  const meanY = values.reduce((sum, value) => sum + value, 0) / n;
+  let numerator = 0, denominator = 0;
+  values.forEach((value, index) => {
+    numerator += (index - meanX) * (value - meanY);
+    denominator += (index - meanX) ** 2;
+  });
+  const slope = denominator ? numerator / denominator : 0;
+  return { intercept: meanY - slope * meanX, slope, predict: x => meanY - slope * meanX + slope * x };
+}
+
+function nextPeriod(label, granularity, steps) {
+  const parts = label.split("-").map(Number);
+  if (granularity === "month") {
+    const date = new Date(Date.UTC(parts[0], parts[1] - 1 + steps, 1));
+    return date.toISOString().slice(0, 7);
+  }
+  const date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2] + steps));
+  return date.toISOString().slice(0, 10);
+}
+
+function buildForecast(trendData) {
+  if (!trendData || !Array.isArray(trendData.points) || !Array.isArray(trendData.series)) {
+    return { status: "unavailable", reason: "A recognised date column and numeric metric are required." };
+  }
+  const points = trendData.points;
+  if (points.length < 12) {
+    return { status: "insufficient_data", periodsAvailable: points.length, minimumPeriods: 12,
+      reason: "At least 12 dated periods are required before this baseline forecast can be evaluated." };
+  }
+  const metrics = trendData.series.slice(0, 3).map((name, metricIndex) => {
+    const values = points.map(point => Number(point.values[metricIndex])).filter(Number.isFinite);
+    if (values.length !== points.length) return { metric: name, status: "unavailable", reason: "Some periods have missing or invalid metric values." };
+    const holdout = 3;
+    const training = values.slice(0, -holdout);
+    const observed = values.slice(-holdout);
+    const fit = linearFit(training);
+    const trendErrors = observed.map((value, index) => value - fit.predict(training.length + index));
+    const naiveErrors = observed.map((value, index) => value - training[training.length - 1]);
+    const mae = errors => errors.reduce((sum, error) => sum + Math.abs(error), 0) / errors.length;
+    const trendMae = mae(trendErrors);
+    const naiveMae = mae(naiveErrors);
+    const useTrend = trendMae < naiveMae;
+    const selectedModel = useTrend ? "Linear trend" : "Last-period baseline";
+    const selectedMae = useTrend ? trendMae : naiveMae;
+    const fullFit = linearFit(values);
+    const residuals = values.map((value, index) => value - fullFit.predict(index));
+    const rmse = Math.sqrt(residuals.reduce((sum, error) => sum + error * error, 0) / Math.max(1, values.length - 2));
+    const forecast = [1, 2, 3].map(step => {
+      const raw = useTrend ? fullFit.predict(values.length - 1 + step) : values[values.length - 1];
+      const estimate = Math.max(0, raw);
+      const band = 1.5 * rmse * Math.sqrt(1 + step / values.length);
+      return {
+        period: nextPeriod(points[points.length - 1].date, trendData.granularity, step),
+        estimate: Number(estimate.toFixed(2)),
+        lower: Number(Math.max(0, estimate - band).toFixed(2)),
+        upper: Number((estimate + band).toFixed(2))
+      };
+    });
+    const denominator = observed.reduce((sum, value) => sum + Math.abs(value), 0);
+    return {
+      metric: name,
+      status: "available",
+      model: selectedModel,
+      validation: {
+        holdoutPeriods: holdout,
+        trendMae: Number(trendMae.toFixed(2)),
+        naiveMae: Number(naiveMae.toFixed(2)),
+        selectedMae: Number(selectedMae.toFixed(2)),
+        wapePercent: denominator ? Number((selectedModel === "Linear trend" ? trendErrors : naiveErrors).reduce((sum, error) => sum + Math.abs(error), 0) / denominator * 100).toFixed(2) : null
+      },
+      forecasts: forecast,
+      uncertaintyNote: "The lower and upper values are illustrative uncertainty bands based on historical residual variation, not guaranteed limits."
+    };
+  });
+  return {
+    status: "available",
+    method: "Three-period baseline forecast with a three-period holdout check",
+    granularity: trendData.granularity,
+    historicalPeriods: points.length,
+    validationPeriods: 3,
+    metrics
+  };
+}
+
 export async function onRequestPost({ request, env }) {
   try {
     if (!env.SESSION_SECRET) return clientJson({ ok: false, message: "Dataset analysis is not configured." }, 503);
@@ -209,7 +297,8 @@ export async function onRequestPost({ request, env }) {
         preview,
         columnSummaries: columns,
         chartData,
-        trendData
+        trendData,
+        forecastData: buildForecast(trendData)
       },
       notice: "Analysis was computed from the uploaded CSV in memory. The raw file was not saved. Review column types and data quality before using the results."
     });
