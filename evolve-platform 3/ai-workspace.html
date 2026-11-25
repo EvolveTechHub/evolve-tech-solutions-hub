@@ -282,6 +282,27 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
    const trendHead=document.createElement("tr");[trend.granularity==="month"?"Month":"Date","Records",...trend.series].forEach(label=>{const th=document.createElement("th");th.textContent=label;th.style.cssText="text-align:left;padding:8px;border-bottom:1px solid #d5e5e5";trendHead.append(th)});
    const trendBody=document.createElement("tbody");for(const point of trend.points){const tr=document.createElement("tr");[point.date,point.count,...point.values].forEach(value=>{const td=document.createElement("td");td.textContent=typeof value==="number"?value.toLocaleString(undefined,{maximumFractionDigits:2}):String(value);td.style.cssText="padding:8px;border-bottom:1px solid #e4eeee";tr.append(td)});trendBody.append(tr)}
    trendRows.append(trendHead,trendBody);trendTable.append(trendRows);results.append(trendTable);
+   const anomaly=trend.anomalies;
+   if(anomaly){
+    const anomalyHeading=document.createElement("h4");anomalyHeading.textContent="Unusual values to review";anomalyHeading.style.margin="20px 0 7px";results.append(anomalyHeading);
+    const anomalyNote=document.createElement("p");anomalyNote.className="smallprint";
+    anomalyNote.textContent=anomaly.status==="insufficient_history"
+      ?"At least "+anomaly.minimumPeriods+" periods are needed before unusual-value screening can run."
+      :anomaly.method+" These statistical flags are prompts for review, not proof of errors or causes.";
+    results.append(anomalyNote);
+    if(anomaly.status==="assessed"&&anomaly.findings.length){
+      const anomalyTable=document.createElement("table");anomalyTable.style.cssText="width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px";
+      const anomalyHead=document.createElement("tr");["Period","Metric","Observed value","Dataset median","Signal"].forEach(label=>{const th=document.createElement("th");th.textContent=label;th.style.cssText="text-align:left;padding:8px;border-bottom:1px solid #d5e5e5";anomalyHead.append(th)});
+      const anomalyBody=document.createElement("tbody");
+      anomaly.findings.forEach(item=>{const tr=document.createElement("tr");[item.period,item.metric,String(item.value),String(item.median),item.direction==="above"?"Unusually high":"Unusually low"].forEach(value=>{const td=document.createElement("td");td.textContent=value;td.style.cssText="padding:8px;border-bottom:1px solid #e4eeee";tr.append(td)});anomalyBody.append(tr)});
+      anomalyTable.append(anomalyHead,anomalyBody);results.append(anomalyTable);
+    }else if(anomaly.status==="assessed"){
+      const none=document.createElement("p");none.className="smallprint";none.textContent="No unusual values were flagged by this screening method.";results.append(none);
+    }else{
+      const unavailable=document.createElement("p");unavailable.className="smallprint";unavailable.textContent="Screening was not run because one or more metrics have incomplete period values.";results.append(unavailable);
+    }
+   }
+
   }else{
    const noTrend=document.createElement("p");noTrend.className="smallprint";noTrend.textContent="No reliable date column was detected. Use a date column with recognisable dates (preferably YYYY-MM-DD) and at least one numeric column to generate a time trend.";results.append(noTrend);
   }
