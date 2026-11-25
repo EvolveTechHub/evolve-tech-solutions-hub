@@ -233,8 +233,16 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
   previewTable.append(previewHead,previewBody);results.append(previewTable);
   const chart = a.chartData;
   if(chart && chart.points && chart.points.length){
+   const totalsHeading=document.createElement("h4");totalsHeading.textContent=chart.category+" breakdown · totals from uploaded records";totalsHeading.style.margin="22px 0 8px";results.append(totalsHeading);
+   const totalsNote=document.createElement("p");totalsNote.className="smallprint";totalsNote.textContent="Each row shows the number of records and the sum of each numeric field for that category. These are calculated from the full uploaded CSV in memory.";results.append(totalsNote);
+   const totalsTable=document.createElement("table");totalsTable.style.cssText="width:100%;border-collapse:collapse;font-size:.82rem;display:block;overflow-x:auto";
+   const totalsHead=document.createElement("tr");
+   [chart.category,"Records",...chart.series].forEach(label=>{const th=document.createElement("th");th.textContent=label;th.style.cssText="text-align:left;padding:9px;border-bottom:1px solid #d5e5e5;white-space:nowrap";totalsHead.append(th)});
+   const totalsBody=document.createElement("tbody");
+   for(const point of chart.points){const tr=document.createElement("tr");[point.label,point.count,...point.values].forEach(value=>{const td=document.createElement("td");td.textContent=typeof value==="number"?value.toLocaleString(undefined,{maximumFractionDigits:2}):String(value);td.style.cssText="padding:9px;border-bottom:1px solid #e4eeee;white-space:nowrap";tr.append(td)});totalsBody.append(tr)}
+   totalsTable.append(totalsHead,totalsBody);results.append(totalsTable);
    const chartHeading=document.createElement("h4");chartHeading.textContent="Interactive category comparison";chartHeading.style.margin="22px 0 8px";results.append(chartHeading);
-   const chartHint=document.createElement("p");chartHint.className="smallprint";chartHint.textContent="Grouped totals by category. Choose a numeric field to compare. This chart is descriptive and does not establish causation.";results.append(chartHint);
+   const chartHint=document.createElement("p");chartHint.className="smallprint";chartHint.textContent="Category-level sums. Choose a numeric field to compare totals calculated from all uploaded rows. This chart is descriptive and does not establish causation.";results.append(chartHint);
    const selector=document.createElement("select");selector.setAttribute("aria-label","Choose metric for chart");
    chart.series.forEach((name,index)=>{const option=document.createElement("option");option.value=String(index);option.textContent=name;selector.append(option)});
    results.append(selector);
