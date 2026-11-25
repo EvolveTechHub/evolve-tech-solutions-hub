@@ -115,6 +115,11 @@ function buildForecast(trendData) {
     return { status: "insufficient_data", periodsAvailable: points.length, minimumPeriods: 12,
       reason: "At least 12 dated periods are required before this baseline forecast can be evaluated." };
   }
+  const regular = points.every((point, index) => index === 0 || nextPeriod(points[index - 1].date, trendData.granularity, 1) === point.date);
+  if (!regular) {
+    return { status: "insufficient_data", periodsAvailable: points.length, minimumPeriods: 12,
+      reason: "The detected dates contain gaps. This baseline requires consecutive daily or monthly periods; review missing dates before forecasting." };
+  }
   const metrics = trendData.series.slice(0, 3).map((name, metricIndex) => {
     const values = points.map(point => Number(point.values[metricIndex])).filter(Number.isFinite);
     if (values.length !== points.length) return { metric: name, status: "unavailable", reason: "Some periods have missing or invalid metric values." };
