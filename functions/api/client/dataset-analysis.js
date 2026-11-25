@@ -166,6 +166,33 @@ function detectAnomalies(points, series) {
   };
 }
 
+
+function buildAnomalyContext(data, headers, categoryIndex, numericIndexes, dateValues, findings) {
+  const si=numericIndexes.findIndex(i=>/sales/i.test(headers[i]));
+  if(si<0||!findings.some(x=>x.metric===headers[numericIndexes[si]]))return{status:"unavailable",reason:"No flagged Sales metric was identified for product-level investigation."};
+  if(categoryIndex<0)return{status:"unavailable",reason:"A suitable product or category column was not detected, so the flagged total cannot be split by product."};
+  const ei=numericIndexes.findIndex(i=>/enquir/i.test(headers[i]));
+  const dated=data.map((row,i)=>({row,date:dateValues[i]})).filter(x=>x.date),dates=[...new Set(dated.map(x=>x.date))].sort();
+  const daily=new Map(dates.map(date=>[date,{sales:new Map(),enquiries:new Map(),salesTotal:0,enquiryTotal:0,salesCount:0,enquiryCount:0}]));
+  for(const item of dated){const d=daily.get(item.date),cat=(item.row[categoryIndex]||"(blank)").slice(0,60),sale=numeric(item.row[numericIndexes[si]]);
+    if(sale!==null){d.sales.set(cat,(d.sales.get(cat)||0)+sale);d.salesTotal+=sale;d.salesCount++;}
+    if(ei>=0){const enq=numeric(item.row[numericIndexes[ei]]);if(enq!==null){d.enquiries.set(cat,(d.enquiries.get(cat)||0)+enq);d.enquiryTotal+=enq;d.enquiryCount++;}}
+  }
+  const findingsOut=findings.filter(x=>x.metric===headers[numericIndexes[si]]).slice(0,20).map(finding=>{
+    const d=daily.get(finding.period),count=dated.filter(x=>x.date===finding.period).length;
+    if(!d||d.salesCount!==count)return{period:finding.period,status:"incomplete",reason:"Some Sales values for this date are missing or invalid; product contribution is not reported."};
+    const categories=[...d.sales.entries()].map(([label,total])=>{const hist=dates.map(date=>daily.get(date).sales.get(label)||0).sort((x,y)=>x-y),m=Math.floor(hist.length/2),median=hist.length%2?hist[m]:(hist[m-1]+hist[m])/2;
+      return{label,total:Number(total.toFixed(2)),sharePercent:d.salesTotal?Number((total/d.salesTotal*100).toFixed(1)):null,typicalDailyMedian:Number(median.toFixed(2)),comparedWithMedian:total>median?"above":total<median?"below":"at"};
+    }).sort((x,y)=>y.total-x.total).slice(0,8);
+    const out={period:finding.period,status:"assessed",categoryColumn:headers[categoryIndex],categoryMeaning:/product/i.test(headers[categoryIndex])?"product":"category",salesColumn:headers[numericIndexes[si]],salesTotal:Number(d.salesTotal.toFixed(2)),topCategory:categories[0]?.label||null,topCategorySharePercent:categories[0]?.sharePercent??null,categories};
+    if(ei>=0&&d.enquiryCount===count){const hist=dates.map(date=>daily.get(date).enquiryTotal).sort((x,y)=>x-y),m=Math.floor(hist.length/2),median=hist.length%2?hist[m]:(hist[m-1]+hist[m])/2;
+      out.enquiries={column:headers[numericIndexes[ei]],sameDayTotal:Number(d.enquiryTotal.toFixed(2)),historicalDailyMedian:Number(median.toFixed(2)),comparedWithMedian:d.enquiryTotal>median?"above":d.enquiryTotal<median?"below":"at",categoryTotals:[...d.enquiries.entries()].map(([label,total])=>({label,total:Number(total.toFixed(2))})).sort((x,y)=>y.total-x.total).slice(0,8)};
+    }else out.enquiries={status:ei>=0?"incomplete":"unavailable",reason:ei>=0?"Enquiry values are incomplete for this date; no same-day comparison is reported.":"No Enquiries column was detected; no same-day enquiry comparison is available."};
+    return out;
+  });
+  return{status:findingsOut.length?"assessed":"unavailable",datePeriodsCompared:dates.length,note:"Product/category comparisons are descriptive. Enquiries and Sales are compared independently; no causal relationship is inferred.",findings:findingsOut};
+}
+
 function buildForecast(trendData) {
   const minimumPeriods = 24;
   const holdout = 6;
@@ -384,7 +411,12 @@ export async function onRequestPost({ request, env }) {
         }))
       };
     }
-    if (trendData) trendData.anomalies = detectAnomalies(trendData.points, trendData.series);
+    if (trendData) {
+      trendData.anomalies = detectAnomalies(trendData.points, trendData.series);
+      trendData.anomalyContext = trendData.anomalies.status === "assessed"
+        ? buildAnomalyContext(data, headers, categoryIndex, numericIndexes, dateValues, trendData.anomalies.findings)
+        : { status: "unavailable", reason: "Anomaly screening did not produce findings for investigation." };
+    }
     return clientJson({
       ok: true,
       analysis: {
