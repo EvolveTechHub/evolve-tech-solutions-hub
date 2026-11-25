@@ -114,10 +114,10 @@ export async function onRequestPost({ request, env }) {
       analysis: {
         fileName: file.name.slice(0, 160),
         rows: data.length,
-        columns: headers.length,
+        columnCount: headers.length,
         duplicateRows: duplicates,
         preview,
-        columns
+        columnSummaries: columns
       },
       notice: "Analysis was computed from the uploaded CSV in memory. The raw file was not saved. Review column types and data quality before using the results."
     });
