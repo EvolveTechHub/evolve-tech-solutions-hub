@@ -50,7 +50,8 @@ function parseCsv(text) {
 
 function dateKey(value) {
   const v = String(value || "").trim();
-  let m = v.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[Tt ].*)?$/);
+  // Accept spreadsheet exports that stringify a year as 2026.0, without treating other decimals as dates.
+  m = v.match(/^(\d{4})(?:\.0+)?[-/.](\d{1,2})$/);
   if (m) {
     const y = Number(m[1]), month = Number(m[2]), day = Number(m[3]);
     const d = new Date(Date.UTC(y, month - 1, day));
