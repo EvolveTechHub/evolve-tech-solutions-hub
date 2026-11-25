@@ -5,7 +5,24 @@ const MAX_ROWS = 25000;
 const MAX_COLUMNS = 100;
 const MAX_CELL = 2000;
 
+function detectDelimiter(text) {
+  const first = text.split(/\r\n|\n|\r/).find(line => line.trim() !== "") || "";
+  const candidates = [",", ";", "\\t"];
+  let best = ",", bestCount = 0;
+  for (const delimiter of candidates) {
+    let count = 0, quoted = false;
+    for (let i = 0; i < first.length; i++) {
+      if (first[i] === '"' && first[i + 1] === '"' && quoted) { i++; continue; }
+      if (first[i] === '"') quoted = !quoted;
+      else if (first[i] === delimiter && !quoted) count++;
+    }
+    if (count > bestCount) { best = delimiter; bestCount = count; }
+  }
+  return best;
+}
+
 function parseCsv(text) {
+  const delimiter = detectDelimiter(text);
   const rows = [];
   let row = [], cell = "", quoted = false;
   for (let i = 0; i < text.length; i++) {
@@ -15,7 +32,7 @@ function parseCsv(text) {
       else if (ch === '"') quoted = false;
       else cell += ch;
     } else if (ch === '"' && cell.length === 0) quoted = true;
-    else if (ch === ",") { row.push(cell); cell = ""; }
+    else if (ch === delimiter) { row.push(cell); cell = ""; }
     else if (ch === "\n" || ch === "\r") {
       if (ch === "\r" && text[i + 1] === "\n") i++;
       row.push(cell); cell = "";
