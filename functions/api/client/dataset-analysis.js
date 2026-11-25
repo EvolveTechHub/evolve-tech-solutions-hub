@@ -116,7 +116,9 @@ function detectAnomalies(points, series) {
   }
   const findings = [];
   for (let metricIndex = 0; metricIndex < Math.min(series.length, 3); metricIndex++) {
-    const values = points.map(point => Number(point.values[metricIndex])).filter(Number.isFinite);
+    if (points.some(point => !Array.isArray(point.validCounts) || point.validCounts[metricIndex] !== point.count)) continue;
+    const values = points.map(point => Number(point.values[metricIndex]));
+    if (values.some(value => !Number.isFinite(value))) continue;
     if (values.length < 8) continue;
     const sorted = [...values].sort((a, b) => a - b);
     const median = sorted.length % 2
