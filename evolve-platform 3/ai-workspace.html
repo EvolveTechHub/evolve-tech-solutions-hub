@@ -292,9 +292,9 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
   if(!forecast||forecast.status==="unavailable"){
    forecastIntro.textContent=forecast?.reason||"A recognised date column and numeric metric are required before forecasting can be assessed.";
   }else if(forecast.status==="insufficient_data"){
-   forecastIntro.textContent="Forecast not produced: only "+forecast.periodsAvailable+" dated periods were detected. At least "+forecast.minimumPeriods+" periods are required for this initial baseline.";
+   forecastIntro.textContent="Forecast not produced. "+(forecast.reason||("At least "+forecast.minimumPeriods+" consistent periods are required."));
   }else{
-   forecastIntro.textContent=forecast.method+" · "+forecast.historicalPeriods+" historical periods · "+forecast.validationPeriods+" holdout periods. Forecasts are experimental estimates, not guarantees.";
+   forecastIntro.textContent=forecast.method+" · "+forecast.historicalPeriods+" historical periods · "+forecast.validationPeriods+" rolling validation periods. Forecasts are experimental estimates, not guarantees.";
   }
   forecastWrap.append(forecastIntro);
   if(forecast&&forecast.status==="available"&&Array.isArray(forecast.metrics)){
@@ -304,8 +304,12 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
      const unavailable=document.createElement("p");unavailable.className="smallprint";unavailable.textContent=metric.reason||"Insufficient valid observations.";forecastWrap.append(unavailable);continue;
     }
     const validation=document.createElement("p");validation.className="smallprint";
-    validation.textContent="Three-period holdout check · Trend MAE: "+metric.validation.trendMae+" · Last-period baseline MAE: "+metric.validation.naiveMae+" · Selected MAE: "+metric.validation.selectedMae+" · WAPE: "+(metric.validation.wapePercent===null?"not available":metric.validation.wapePercent+"%");
+    validation.textContent=(metric.validation.method||"Rolling-origin validation")+" · Trend MAE: "+metric.validation.trendMae+" · Last-period baseline MAE: "+metric.validation.naiveMae+" · Selected MAE: "+metric.validation.selectedMae+" · WAPE: "+(metric.validation.wapePercent===null?"not available":metric.validation.wapePercent+"%")+(metric.validation.skillVsNaivePercent===null?"":" · Improvement vs baseline: "+metric.validation.skillVsNaivePercent+"%");
     forecastWrap.append(validation);
+    const quality=document.createElement("p");quality.className="smallprint";
+    const qualityLabels={lower_validation_error:"Lower validation error in this test",moderate_validation_error:"Moderate validation error in this test",high_validation_error:"High validation error — treat this forecast as low confidence",not_assessed:"Forecast error could not be assessed"};
+    quality.textContent=qualityLabels[metric.quality]||"Forecast quality has not been classified.";
+    forecastWrap.append(quality);
     const forecastTable=document.createElement("table");forecastTable.style.cssText="width:100%;border-collapse:collapse;font-size:.82rem";
     const forecastHead=document.createElement("tr");["Period","Estimate","Indicative lower","Indicative upper"].forEach(label=>{const th=document.createElement("th");th.textContent=label;th.style.cssText="text-align:left;padding:8px;border-bottom:1px solid #d5e5e5";forecastHead.append(th)});
     const forecastBody=document.createElement("tbody");
@@ -314,7 +318,7 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
     const uncertainty=document.createElement("p");uncertainty.className="smallprint";uncertainty.textContent=metric.uncertaintyNote||"Ranges are indicative and are not guaranteed.";forecastWrap.append(uncertainty);
    }
   }
-  const forecastCaution=document.createElement("p");forecastCaution.className="smallprint";forecastCaution.textContent="Forecast quality depends on consistent historical data. This first release uses a simple baseline and a small holdout check; it does not account for seasonality, promotions, market changes or causal factors. Do not use it as the sole basis for important financial or operational decisions.";
+  const forecastCaution=document.createElement("p");forecastCaution.className="smallprint";forecastCaution.textContent="Forecasting now requires at least 24 consecutive daily or monthly periods, consistent date precision, no excluded date rows and complete metric values. Models are compared using six rolling one-step-ahead validation periods; a linear trend is used only when it improves on the last-period baseline by at least 10%. Indicative ranges are not formal prediction intervals. This release does not model seasonality, promotions, market changes or causal factors. Do not use it as the sole basis for important financial or operational decisions.";
   forecastWrap.append(forecastCaution);results.append(forecastWrap);
   const insightWrap=document.createElement("div");insightWrap.style.cssText="margin-top:20px;padding:16px;border:1px solid #d7e8e8;border-radius:14px;background:#fbfefe";
   const insightButton=document.createElement("button");insightButton.type="button";insightButton.className="primary";insightButton.textContent="Generate AI business insights";
