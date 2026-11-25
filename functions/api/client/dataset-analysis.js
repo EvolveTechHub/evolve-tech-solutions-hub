@@ -181,8 +181,8 @@ function buildAnomalyContext(data, headers, categoryIndex, numericIndexes, dateV
   const findingsOut=findings.filter(x=>x.metric===headers[numericIndexes[si]]).slice(0,20).map(finding=>{
     const d=daily.get(finding.period),count=dated.filter(x=>x.date===finding.period).length;
     if(!d||d.salesCount!==count)return{period:finding.period,status:"incomplete",reason:"Some Sales values for this date are missing or invalid; product contribution is not reported."};
-    const categories=[...d.sales.entries()].map(([label,total])=>{const hist=dates.map(date=>daily.get(date).sales.get(label)||0).sort((x,y)=>x-y),m=Math.floor(hist.length/2),median=hist.length%2?hist[m]:(hist[m-1]+hist[m])/2;
-      return{label,total:Number(total.toFixed(2)),sharePercent:d.salesTotal?Number((total/d.salesTotal*100).toFixed(1)):null,typicalDailyMedian:Number(median.toFixed(2)),comparedWithMedian:total>median?"above":total<median?"below":"at"};
+    const categories=[...d.sales.entries()].map(([label,total])=>{const hist=dates.filter(date=>daily.get(date).sales.has(label)).map(date=>daily.get(date).sales.get(label)).sort((x,y)=>x-y),m=Math.floor(hist.length/2),median=hist.length%2?hist[m]:(hist[m-1]+hist[m])/2;
+      return{label,total:Number(total.toFixed(2)),sharePercent:d.salesTotal?Number((total/d.salesTotal*100).toFixed(1)):null,typicalDailyMedian:Number(median.toFixed(2)),observedDays:hist.length,comparedWithMedian:total>median?"above":total<median?"below":"at"};
     }).sort((x,y)=>y.total-x.total).slice(0,8);
     const out={period:finding.period,status:"assessed",categoryColumn:headers[categoryIndex],categoryMeaning:/product/i.test(headers[categoryIndex])?"product":"category",salesColumn:headers[numericIndexes[si]],salesTotal:Number(d.salesTotal.toFixed(2)),topCategory:categories[0]?.label||null,topCategorySharePercent:categories[0]?.sharePercent??null,categories};
     if(ei>=0&&d.enquiryCount===count){const hist=dates.map(date=>daily.get(date).enquiryTotal).sort((x,y)=>x-y),m=Math.floor(hist.length/2),median=hist.length%2?hist[m]:(hist[m-1]+hist[m])/2;
@@ -190,7 +190,7 @@ function buildAnomalyContext(data, headers, categoryIndex, numericIndexes, dateV
     }else out.enquiries={status:ei>=0?"incomplete":"unavailable",reason:ei>=0?"Enquiry values are incomplete for this date; no same-day comparison is reported.":"No Enquiries column was detected; no same-day enquiry comparison is available."};
     return out;
   });
-  return{status:findingsOut.length?"assessed":"unavailable",datePeriodsCompared:dates.length,note:"Product/category comparisons are descriptive. Enquiries and Sales are compared independently; no causal relationship is inferred.",findings:findingsOut};
+  return{status:findingsOut.length?"assessed":"unavailable",datePeriodsCompared:dates.length,note:"Product/category shares describe the uploaded records for each date. Product medians use only dates where that product has a recorded row; dates without a row are not assumed to have zero sales. Enquiries and Sales are compared independently; no causal relationship is inferred.",findings:findingsOut};
 }
 
 function buildForecast(trendData) {
