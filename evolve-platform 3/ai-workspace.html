@@ -285,6 +285,37 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
   }else{
    const noTrend=document.createElement("p");noTrend.className="smallprint";noTrend.textContent="No reliable date column was detected. Use a date column with recognisable dates (preferably YYYY-MM-DD) and at least one numeric column to generate a time trend.";results.append(noTrend);
   }
+  const forecast=a.forecastData;
+  const forecastWrap=document.createElement("section");forecastWrap.style.cssText="margin-top:22px;padding:17px;border:1px solid #d7e8e8;border-radius:14px;background:#fbfefe";
+  const forecastTitle=document.createElement("h4");forecastTitle.textContent="Experimental predictive analytics";forecastTitle.style.margin="0 0 8px";forecastWrap.append(forecastTitle);
+  const forecastIntro=document.createElement("p");forecastIntro.className="smallprint";
+  if(!forecast||forecast.status==="unavailable"){
+   forecastIntro.textContent=forecast?.reason||"A recognised date column and numeric metric are required before forecasting can be assessed.";
+  }else if(forecast.status==="insufficient_data"){
+   forecastIntro.textContent="Forecast not produced: only "+forecast.periodsAvailable+" dated periods were detected. At least "+forecast.minimumPeriods+" periods are required for this initial baseline.";
+  }else{
+   forecastIntro.textContent=forecast.method+" · "+forecast.historicalPeriods+" historical periods · "+forecast.validationPeriods+" holdout periods. Forecasts are experimental estimates, not guarantees.";
+  }
+  forecastWrap.append(forecastIntro);
+  if(forecast&&forecast.status==="available"&&Array.isArray(forecast.metrics)){
+   for(const metric of forecast.metrics){
+    const metricHeading=document.createElement("h5");metricHeading.textContent=metric.metric+" · "+(metric.status==="available"?metric.model:"Forecast unavailable");metricHeading.style.margin="16px 0 7px";forecastWrap.append(metricHeading);
+    if(metric.status!=="available"){
+     const unavailable=document.createElement("p");unavailable.className="smallprint";unavailable.textContent=metric.reason||"Insufficient valid observations.";forecastWrap.append(unavailable);continue;
+    }
+    const validation=document.createElement("p");validation.className="smallprint";
+    validation.textContent="Three-period holdout check · Trend MAE: "+metric.validation.trendMae+" · Last-period baseline MAE: "+metric.validation.naiveMae+" · Selected MAE: "+metric.validation.selectedMae+" · WAPE: "+(metric.validation.wapePercent===null?"not available":metric.validation.wapePercent+"%");
+    forecastWrap.append(validation);
+    const forecastTable=document.createElement("table");forecastTable.style.cssText="width:100%;border-collapse:collapse;font-size:.82rem";
+    const forecastHead=document.createElement("tr");["Period","Estimate","Indicative lower","Indicative upper"].forEach(label=>{const th=document.createElement("th");th.textContent=label;th.style.cssText="text-align:left;padding:8px;border-bottom:1px solid #d5e5e5";forecastHead.append(th)});
+    const forecastBody=document.createElement("tbody");
+    for(const point of metric.forecasts||[]){const tr=document.createElement("tr");[point.period,point.estimate,point.lower,point.upper].forEach(value=>{const td=document.createElement("td");td.textContent=String(value);td.style.cssText="padding:8px;border-bottom:1px solid #e4eeee";tr.append(td)});forecastBody.append(tr)}
+    forecastTable.append(forecastHead,forecastBody);forecastWrap.append(forecastTable);
+    const uncertainty=document.createElement("p");uncertainty.className="smallprint";uncertainty.textContent=metric.uncertaintyNote||"Ranges are indicative and are not guaranteed.";forecastWrap.append(uncertainty);
+   }
+  }
+  const forecastCaution=document.createElement("p");forecastCaution.className="smallprint";forecastCaution.textContent="Forecast quality depends on consistent historical data. This first release uses a simple baseline and a small holdout check; it does not account for seasonality, promotions, market changes or causal factors. Do not use it as the sole basis for important financial or operational decisions.";
+  forecastWrap.append(forecastCaution);results.append(forecastWrap);
   const insightWrap=document.createElement("div");insightWrap.style.cssText="margin-top:20px;padding:16px;border:1px solid #d7e8e8;border-radius:14px;background:#fbfefe";
   const insightButton=document.createElement("button");insightButton.type="button";insightButton.className="primary";insightButton.textContent="Generate AI business insights";
   const insightStatus=document.createElement("p");insightStatus.className="smallprint";insightStatus.setAttribute("role","status");insightStatus.setAttribute("aria-live","polite");
