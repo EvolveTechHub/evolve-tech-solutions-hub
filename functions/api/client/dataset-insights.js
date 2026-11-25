@@ -35,7 +35,7 @@ function filterUnsupportedInsights(value, analysis) {
     /targeted marketing|marketing campaign|increase marketing spend/i,
     /prioriti[sz]e inventory|increase inventory|reallocat(?:e|ing) resources/i
   ];
-  const paragraphs = String(value || "").split(/\\n\\s*\\n/);
+  const paragraphs = String(value || "").split(/\n\s*\n/);
   const kept = paragraphs.filter(paragraph => {
     const text = paragraph.trim();
     if (!text) return false;
@@ -44,7 +44,7 @@ function filterUnsupportedInsights(value, analysis) {
         /inform business decisions|guide (?:operational|business) decisions|use .* for (?:planning|budgets?|staffing|inventory)|base .* decisions on/i.test(text)) return false;
     return true;
   });
-  return kept.join("\\n\\n").trim() ||
+  return kept.join("\n\n").trim() ||
     "The aggregate statistics support descriptive category comparisons and data-quality checks only. Validate unusual dates against source records and metric definitions. Enquiries and Sales are separate measures; no matched customer journey or causal relationship is established. High-validation-error projections should not guide operational decisions.";
 }
 
