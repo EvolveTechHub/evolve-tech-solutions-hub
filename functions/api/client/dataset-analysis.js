@@ -107,41 +107,62 @@ function nextPeriod(label, granularity, steps) {
 }
 
 function buildForecast(trendData) {
+  const minimumPeriods = 24;
+  const holdout = 6;
   if (!trendData || !Array.isArray(trendData.points) || !Array.isArray(trendData.series)) {
     return { status: "unavailable", reason: "A recognised date column and numeric metric are required." };
   }
   const points = trendData.points;
-  if (points.length < 12) {
-    return { status: "insufficient_data", periodsAvailable: points.length, minimumPeriods: 12,
-      reason: "At least 12 dated periods are required before this baseline forecast can be evaluated." };
+  if (trendData.datePrecisionMixed) {
+    return { status: "insufficient_data", periodsAvailable: points.length, minimumPeriods,
+      reason: "The date column mixes month-only and full-date values. Use one consistent date format before forecasting." };
+  }
+  if (trendData.excludedRows > 0) {
+    return { status: "insufficient_data", periodsAvailable: points.length, minimumPeriods,
+      reason: trendData.excludedRows + " rows have unrecognised dates. Correct or remove those rows before forecasting so the historical series is complete." };
+  }
+  if (points.length < minimumPeriods) {
+    return { status: "insufficient_data", periodsAvailable: points.length, minimumPeriods,
+      reason: "At least 24 consecutive dated periods are required. This provides a longer history and six rolling validation periods." };
   }
   const regular = points.every((point, index) => index === 0 || nextPeriod(points[index - 1].date, trendData.granularity, 1) === point.date);
   if (!regular) {
-    return { status: "insufficient_data", periodsAvailable: points.length, minimumPeriods: 12,
-      reason: "The detected dates contain gaps. This baseline requires consecutive daily or monthly periods; review missing dates before forecasting." };
+    return { status: "insufficient_data", periodsAvailable: points.length, minimumPeriods,
+      reason: "The detected dates contain gaps. This baseline requires consecutive daily or monthly periods; review missing periods before forecasting." };
   }
   const metrics = trendData.series.slice(0, 3).map((name, metricIndex) => {
-    const values = points.map(point => Number(point.values[metricIndex])).filter(Number.isFinite);
-    if (values.length !== points.length) return { metric: name, status: "unavailable", reason: "Some periods have missing or invalid metric values." };
-    const holdout = 3;
-    const training = values.slice(0, -holdout);
-    const observed = values.slice(-holdout);
-    const fit = linearFit(training);
-    const trendErrors = observed.map((value, index) => value - fit.predict(training.length + index));
-    const naiveErrors = observed.map((value, index) => value - training[training.length - 1]);
+    if (points.some(point => !Array.isArray(point.validCounts) || point.validCounts[metricIndex] !== point.count)) {
+      return { metric: name, status: "unavailable", reason: "At least one period contains missing or invalid values for this metric. Complete the metric data before forecasting." };
+    }
+    const values = points.map(point => Number(point.values[metricIndex]));
+    if (values.length !== points.length || values.some(value => !Number.isFinite(value))) {
+      return { metric: name, status: "unavailable", reason: "Some periods have missing or invalid metric values." };
+    }
+    const trendErrors = [], naiveErrors = [];
+    for (let index = values.length - holdout; index < values.length; index++) {
+      const training = values.slice(0, index);
+      const observed = values[index];
+      const fit = linearFit(training);
+      trendErrors.push(observed - fit.predict(training.length));
+      naiveErrors.push(observed - training[training.length - 1]);
+    }
     const mae = errors => errors.reduce((sum, error) => sum + Math.abs(error), 0) / errors.length;
     const trendMae = mae(trendErrors);
     const naiveMae = mae(naiveErrors);
-    const useTrend = trendMae < naiveMae;
+    const useTrend = trendMae < naiveMae && trendMae <= naiveMae * 0.9;
     const selectedModel = useTrend ? "Linear trend" : "Last-period baseline";
+    const selectedErrors = useTrend ? trendErrors : naiveErrors;
     const selectedMae = useTrend ? trendMae : naiveMae;
+    const denominator = values.slice(-holdout).reduce((sum, value) => sum + Math.abs(value), 0);
+    const wapePercent = denominator > 0
+      ? Number((selectedErrors.reduce((sum, error) => sum + Math.abs(error), 0) / denominator * 100).toFixed(2))
+      : null;
+    const validationRmse = Math.sqrt(selectedErrors.reduce((sum, error) => sum + error * error, 0) / selectedErrors.length);
     const fullFit = linearFit(values);
-    const residuals = values.map((value, index) => value - fullFit.predict(index));
-    const rmse = Math.sqrt(residuals.reduce((sum, error) => sum + error * error, 0) / Math.max(1, values.length - 2));
     const forecast = [1, 2, 3].map(step => {
       const raw = useTrend ? fullFit.predict(values.length - 1 + step) : values[values.length - 1];
       const estimate = Math.max(0, raw);
-      const band = 1.5 * rmse * Math.sqrt(1 + step / values.length);
+      const band = 1.96 * validationRmse * Math.sqrt(step);
       return {
         period: nextPeriod(points[points.length - 1].date, trendData.granularity, step),
         estimate: Number(estimate.toFixed(2)),
@@ -149,32 +170,38 @@ function buildForecast(trendData) {
         upper: Number((estimate + band).toFixed(2))
       };
     });
-    const denominator = observed.reduce((sum, value) => sum + Math.abs(value), 0);
+    const quality = wapePercent === null ? "not_assessed"
+      : wapePercent <= 20 ? "lower_validation_error"
+      : wapePercent <= 35 ? "moderate_validation_error" : "high_validation_error";
     return {
       metric: name,
       status: "available",
       model: selectedModel,
+      quality,
       validation: {
         holdoutPeriods: holdout,
+        method: "Rolling-origin one-step-ahead validation",
         trendMae: Number(trendMae.toFixed(2)),
         naiveMae: Number(naiveMae.toFixed(2)),
         selectedMae: Number(selectedMae.toFixed(2)),
-        wapePercent: denominator ? Number((selectedModel === "Linear trend" ? trendErrors : naiveErrors).reduce((sum, error) => sum + Math.abs(error), 0) / denominator * 100).toFixed(2) : null
+        skillVsNaivePercent: naiveMae > 0 ? Number(((naiveMae - selectedMae) / naiveMae * 100).toFixed(2)) : null,
+        wapePercent,
+        validationRmse: Number(validationRmse.toFixed(2))
       },
       forecasts: forecast,
-      uncertaintyNote: "The lower and upper values are illustrative uncertainty bands based on historical residual variation, not guaranteed limits."
+      uncertaintyNote: "Indicative ranges are based on six rolling out-of-sample validation errors and widen with forecast horizon. They are not formal prediction intervals or guaranteed limits."
     };
   });
   return {
     status: "available",
-    method: "Three-period baseline forecast with a three-period holdout check",
+    method: "Three-period baseline forecast selected by six-period rolling-origin validation",
     granularity: trendData.granularity,
     historicalPeriods: points.length,
-    validationPeriods: 3,
+    validationPeriods: holdout,
+    minimumPeriods,
     metrics
   };
 }
-
 export async function onRequestPost({ request, env }) {
   try {
     if (!env.SESSION_SECRET) return clientJson({ ok: false, message: "Dataset analysis is not configured." }, 503);
@@ -269,26 +296,31 @@ export async function onRequestPost({ request, env }) {
     }
     if (dateChoice && numericIndexes.length) {
       const datedRows = data.map((row, i) => ({ key: dateValues[i], row })).filter(x => x.key);
-      const uniqueDays = new Set(datedRows.map(x => x.key)).size;
-      const granularity = uniqueDays > 90 ? "month" : "day";
+      const datePrecisionMixed = datedRows.some(item => item.key.length !== datedRows[0].key.length);
+      const monthOnly = datedRows.length > 0 && datedRows.every(item => item.key.length === 7);
+      const granularity = monthOnly ? "month" : "day";
       const groups = new Map();
       for (const item of datedRows) {
         const key = granularity === "month" ? item.key.slice(0, 7) : item.key;
-        if (!groups.has(key)) groups.set(key, { count: 0, sums: numericIndexes.map(() => 0) });
+        if (!groups.has(key)) groups.set(key, { count: 0, sums: numericIndexes.map(() => 0), validCounts: numericIndexes.map(() => 0) });
         const group = groups.get(key);
         group.count++;
         numericIndexes.forEach((columnIndex, seriesIndex) => {
           const value = numeric(item.row[columnIndex]);
-          if (value !== null) group.sums[seriesIndex] += value;
+          if (value !== null) {
+            group.sums[seriesIndex] += value;
+            group.validCounts[seriesIndex]++;
+          }
         });
       }
       trendData = {
         dateColumn: dateChoice.c.name,
         granularity,
+        datePrecisionMixed,
         excludedRows: data.length - datedRows.length,
         series: numericIndexes.map(i => headers[i]),
         points: [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-240).map(([date, group]) => ({
-          date, count: group.count, values: group.sums.map(v => Number(v.toFixed(2)))
+          date, count: group.count, values: group.sums.map(v => Number(v.toFixed(2))), validCounts: group.validCounts
         }))
       };
     }
