@@ -20,6 +20,34 @@ function clean(value, max) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
+function filterUnsupportedInsights(value, analysis) {
+  const highForecastError = analysis?.forecastData?.metrics?.some(metric =>
+    metric?.status === "available" && metric?.quality === "high_validation_error"
+  );
+  const blocked = [
+    /potential causes? of (?:the )?anomal/i,
+    /investigat(?:e|ing) the causes? of (?:the )?anomal/i,
+    /what (?:are|were) the causes? of (?:the )?anomal/i,
+    /why (?:did|do|does) .*anomal/i,
+    /relationships? between (?:the )?enquir(?:y|ies) and (?:the )?sales/i,
+    /correlation between (?:the )?enquir(?:y|ies) and (?:the )?sales/i,
+    /conversion rate between (?:the )?enquir(?:y|ies) and (?:the )?sales/i,
+    /targeted marketing|marketing campaign|increase marketing spend/i,
+    /prioriti[sz]e inventory|increase inventory|reallocat(?:e|ing) resources/i
+  ];
+  const paragraphs = String(value || "").split(/\\n\\s*\\n/);
+  const kept = paragraphs.filter(paragraph => {
+    const text = paragraph.trim();
+    if (!text) return false;
+    if (blocked.some(pattern => pattern.test(text))) return false;
+    if (highForecastError && /forecast|projection/i.test(text) &&
+        /inform business decisions|guide (?:operational|business) decisions|use .* for (?:planning|budgets?|staffing|inventory)|base .* decisions on/i.test(text)) return false;
+    return true;
+  });
+  return kept.join("\\n\\n").trim() ||
+    "The aggregate statistics support descriptive category comparisons and data-quality checks only. Validate unusual dates against source records and metric definitions. Enquiries and Sales are separate measures; no matched customer journey or causal relationship is established. High-validation-error projections should not guide operational decisions.";
+}
+
 export async function onRequestPost({ request, env }) {
   try {
     if (!env.DB || !env.SESSION_SECRET) return clientJson({ ok: false, message: "AI workspace is not configured." }, 503);
@@ -177,8 +205,9 @@ export async function onRequestPost({ request, env }) {
       { role: "user", content: "Analyse these aggregate-only CSV statistics for a business user. Do not request or assume raw records.\n" + JSON.stringify(safeAnalysis) }
     ];
     const inference = await env.AI.run(MODEL, { messages, max_tokens: 1100, temperature: 0.15 });
-    const result = clean(inference?.response, MAX_RESULT);
-    if (!result) return clientJson({ ok: false, message: "The AI service did not return a usable insight report." }, 502);
+    const rawResult = clean(inference?.response, MAX_RESULT);
+    if (!rawResult) return clientJson({ ok: false, message: "The AI service did not return a usable insight report." }, 502);
+    const result = filterUnsupportedInsights(rawResult, safeAnalysis);
     const id = crypto.randomUUID();
     const createdAt = new Date().toISOString();
     await env.DB.prepare(
