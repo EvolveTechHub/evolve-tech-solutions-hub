@@ -273,7 +273,16 @@ function managementReportLines(){
   "Operations lead: review category performance alongside costs, margins, stock and demand.",
   "Management: approve operational changes only after validating evidence and considering other relevant information."
  ]);
- add("AI-generated business insights",latestDatasetInsights?latestDatasetInsights.split(/\r?\n/):["No AI business insights were added. Generate insights after analysis, then download the report again to include them."]);
+  const categoryPoints=a.chartData?.points||[],series=a.chartData?.series||[];
+  const verifiedInterpretation=["The following observations are calculated from the uploaded records and aggregate summaries. They describe patterns only and do not establish causes or business-wide representativeness."];
+  for(let i=0;i<series.length;i++){
+   const ranked=[...categoryPoints].filter(p=>Number.isFinite(Number(p.values?.[i]))).sort((x,y)=>Number(y.values[i])-Number(x.values[i]));
+   if(ranked.length>1)verifiedInterpretation.push(series[i]+": "+ranked[0].label+" has the highest uploaded-record total ("+ranked[0].values[i]+"), while "+ranked[ranked.length-1].label+" has the lowest ("+ranked[ranked.length-1].values[i]+").");
+  }
+  const flagged=trend?.anomalies?.findings||[];
+  if(flagged.length)verifiedInterpretation.push("The statistical screening flagged "+flagged.length+" unusual period-and-metric observations. These flags identify values for verification; they do not identify causes or prove data errors.");
+  if(highForecast.length)verifiedInterpretation.push("Forecasts for "+highForecast.map(m=>m.metric).join(" and ")+" have high validation error. Treat them as experimental and do not use them to guide operational decisions.");
+  add("9. Supplementary data interpretation",verifiedInterpretation);
  lines.push("","IMPORTANT: This report is an analytical aid, not an audit or guarantee. Verify findings against original records.");
  return lines;
 }
@@ -290,8 +299,8 @@ async function reportLogoJpeg(){
 function downloadManagementPdf(){
  const lines=managementReportLines();if(!lines.length)return;
   const paragraphs=[];let paragraph=[];for(const line of lines){if(!line.trim()){if(paragraph.length){paragraphs.push(paragraph);paragraph=[];}continue;}paragraph.push(line);}if(paragraph.length)paragraphs.push(paragraph);
-  const isHeading=part=>part.length===1&&(/^[1-8]\.\s/.test(part[0])||part[0]==="AI-GENERATED BUSINESS INSIGHTS");
-  const blocks=[];for(let i=0;i<paragraphs.length;i++){if(isHeading(paragraphs[i])){const next=paragraphs[i+1]||[];blocks.push([...paragraphs[i],...next]);if(next.length)i++;}else blocks.push(paragraphs[i]);}
+   const isHeading=part=>part.length===1&&(/^[1-9]\.\s/.test(part[0])||/^#{1,6}\s/.test(part[0])||part[0]==="AI-GENERATED BUSINESS INSIGHTS");
+   const blocks=[];for(let i=0;i<paragraphs.length;i++){if(isHeading(paragraphs[i])){const group=[...paragraphs[i]];let j=i+1;while(j<paragraphs.length&&isHeading(paragraphs[j])){group.push(...paragraphs[j]);j++;}if(j<paragraphs.length){group.push(...paragraphs[j]);j++;}blocks.push(group);i=j-1;}else blocks.push(paragraphs[i]);}
   const weight=line=>line===""?0.6:isHeading([line])?2:1;const pages=[[]];let pageWeight=0;for(let blockIndex=0;blockIndex<blocks.length;blockIndex++){let remaining=[...blocks[blockIndex],...(blockIndex<blocks.length-1?[""]:[])];while(remaining.length){const room=38-pageWeight;const cost=remaining.reduce((sum,line)=>sum+weight(line),0);if(cost<=room){pages[pages.length-1].push(...remaining);pageWeight+=cost;remaining=[];}else if(pageWeight>0){pages.push([]);pageWeight=0;}else{let take=0,used=0;while(take<remaining.length&&used+weight(remaining[take])<=38){used+=weight(remaining[take]);take++;}if(!take)take=1;pages[pages.length-1].push(...remaining.splice(0,take));pageWeight=used;if(remaining.length){pages.push([]);pageWeight=0;}}}}
  const enc=new TextEncoder(),objects=[];const addText=value=>{objects.push(enc.encode(value));return objects.length;};
  const catalogId=addText(""),pagesId=addText(""),fontId=addText("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"),boldFontId=addText("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
@@ -309,8 +318,8 @@ function downloadManagementPdf(){
    let y=700;
    for(const line of pages[p]){
     if(!line){y-=8;continue;}
-    const heading=/^[1-8]\. /.test(line)||line==="AI-GENERATED BUSINESS INSIGHTS";
-    if(heading){stream+="0.91 0.96 0.96 rg\n42 "+(y-7)+" 528 22 re f\n";stream+=op(line,50,y,10,"F2","0.035 0.20 0.24");y-=27;}
+    const heading=/^[1-9]\. /.test(line)||/^#{1,6}\\s/.test(line)||line==="AI-GENERATED BUSINESS INSIGHTS";
+    if(heading){stream+="0.91 0.96 0.96 rg\n42 "+(y-7)+" 528 22 re f\n";stream+=op(line.replace(/^#{1,6}\\s*/, ""),50,y,10,"F2","0.035 0.20 0.24");y-=27;}
     else{stream+=op(line,50,y,8.5,"F1","0.12 0.18 0.20");y-=14;}
    }
    stream+="0.10 0.35 0.39 rg\n42 43 528 1 re f\n";
