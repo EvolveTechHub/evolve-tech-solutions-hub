@@ -122,7 +122,7 @@ export async function onRequestPost({ request, env }) {
                 categoryMeaning:item.categoryMeaning==="product"?"product":"category",salesColumn:clean(item.salesColumn,100),
                 salesTotal:Number.isFinite(Number(item.salesTotal))?Number(item.salesTotal):null,topCategory:clean(item.topCategory,60),
                 topCategorySharePercent:Number.isFinite(Number(item.topCategorySharePercent))?Number(item.topCategorySharePercent):null,
-                categories:Array.isArray(item.categories)?item.categories.slice(0,8).map(x=>({label:clean(x.label,60),total:Number(x.total)||0,sharePercent:Number.isFinite(Number(x.sharePercent))?Number(x.sharePercent):null,typicalDailyMedian:Number(x.typicalDailyMedian)||0,comparedWithMedian:clean(x.comparedWithMedian,20)})):[],
+                categories:Array.isArray(item.categories)?item.categories.slice(0,8).map(x=>({label:clean(x.label,60),total:Number(x.total)||0,sharePercent:Number.isFinite(Number(x.sharePercent))?Number(x.sharePercent):null,typicalDailyMedian:Number(x.typicalDailyMedian)||0,observedDays:Math.max(0,Math.min(240,Number(x.observedDays)||0)),comparedWithMedian:clean(x.comparedWithMedian,20)})):[],
                 enquiries:item.enquiries&&typeof item.enquiries==="object"?{status:clean(item.enquiries.status,30),reason:clean(item.enquiries.reason,240),column:clean(item.enquiries.column,100),
                   sameDayTotal:Number.isFinite(Number(item.enquiries.sameDayTotal))?Number(item.enquiries.sameDayTotal):null,
                   historicalDailyMedian:Number.isFinite(Number(item.enquiries.historicalDailyMedian))?Number(item.enquiries.historicalDailyMedian):null,
