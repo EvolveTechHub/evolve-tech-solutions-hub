@@ -68,12 +68,24 @@ export async function onRequestPost({ request, env }) {
                 averagesPerRecord: totals.map(value => records > 0 ? Number((value / records).toFixed(4)) : null)
               };
             });
-            const rankings = metrics.map((metric, index) => ({
-              metric,
-              highestTotal: [...points].sort((a, b) => (b.totals[index] || 0) - (a.totals[index] || 0))[0]?.label || null,
-              lowestTotal: [...points].sort((a, b) => (a.totals[index] || 0) - (b.totals[index] || 0))[0]?.label || null
-            }));
-            return { category: clean(analysis.chartData.category, 100), metrics, points, rankings };
+            const rankings = metrics.map((metric, index) => {
+              const ordered = [...points].sort((a, b) => (b.totals[index] || 0) - (a.totals[index] || 0));
+              return {
+                metric,
+                highestTotal: ordered[0]?.label || null,
+                highestValue: ordered[0]?.totals[index] ?? null,
+                lowestTotal: ordered[ordered.length - 1]?.label || null,
+                lowestValue: ordered[ordered.length - 1]?.totals[index] ?? null,
+                orderedTotals: ordered.map(point => ({ category: point.label, total: point.totals[index] || 0 }))
+              };
+            });
+            const verifiedFindings = rankings.map(ranking =>
+              ranking.metric + " totals, highest to lowest: " +
+              ranking.orderedTotals.map(item => item.category + " (" + item.total + ")").join("; ") +
+              ". Highest: " + ranking.highestTotal + " (" + ranking.highestValue + "). Lowest: " +
+              ranking.lowestTotal + " (" + ranking.lowestValue + ")."
+            );
+            return { category: clean(analysis.chartData.category, 100), metrics, points, rankings, verifiedFindings };
           })()
         : null,
       timeTrend: analysis.trendData && Array.isArray(analysis.trendData.points)
@@ -96,7 +108,7 @@ export async function onRequestPost({ request, env }) {
     if ((recent?.total || 0) >= 3) return clientJson({ ok: false, message: "You have reached the initial limit of 3 AI tasks in 24 hours. Please try again later." }, 429);
 
     const messages = [
-      { role: "system", content: "You are Evolve AI, a careful business data analyst. Interpret only the supplied aggregate statistics. You have not seen the raw dataset and must not imply otherwise. Do not invent trends over time, correlations, causal effects, forecasts, customer characteristics, or business outcomes that the summary cannot support. If timeTrend is supplied, describe only the observed date-grouped totals, state whether grouping is daily or monthly, mention excluded undated rows, and identify increases or decreases only when directly visible in the supplied points. Do not call this a forecast. Distinguish observed statistics from hypotheses and recommendations. Explicitly mention the small sample size when row count is below 30. Explain that top category counts are record frequencies, not metric totals. If categoryBreakdown is supplied, interpret every metric separately: compare its totals across categories, use the supplied rankings, and never describe a category as having low overall performance merely because it ranks low on one metric. Explicitly distinguish total values from averages per record; averages per record are descriptive and do not establish conversion rates or causal relationships. For example, a category may have fewer enquiries but still have higher sales totals than another category; state both facts accurately. Never infer that a column named Sales is monetary revenue, units sold, or profit unless its meaning and units are provided. If a ratio is discussed, label it as a simple aggregate ratio and warn that it is not necessarily a conversion rate because the rows may not represent matched enquiry-to-sale journeys. Provide headings: 1) What the summary shows, 2) Category-level totals, 3) Data quality and limitations, 4) Useful business questions, 5) Recommended next analyses, 6) Practical actions. Include a separate time-trend interpretation in the relevant sections when timeTrend is available; otherwise say no reliable date trend was supplied. Use concise, specific language and explain when a conclusion cannot be drawn." },
+      { role: "system", content: "You are Evolve AI, a careful business data analyst. Interpret only the supplied aggregate statistics. You have not seen the raw dataset and must not imply otherwise. Do not invent trends over time, correlations, causal effects, forecasts, customer characteristics, or business outcomes that the summary cannot support. If timeTrend is supplied, describe only the observed date-grouped totals, state whether grouping is daily or monthly, mention excluded undated rows, and identify increases or decreases only when directly visible in the supplied points. Do not call this a forecast. Distinguish observed statistics from hypotheses and recommendations. Explicitly mention the small sample size when row count is below 30. Explain that top category counts are record frequencies, not metric totals. If categoryBreakdown is supplied, interpret every metric separately. The categoryBreakdown.verifiedFindings and orderedTotals are backend-computed authoritative rankings; reproduce their ordering and values exactly, and never contradict them. Do not independently guess or recalculate rankings from memory. If verifiedFindings says a category is not the lowest for a metric, do not call it the lowest. Never describe a category as having low overall performance merely because it ranks low on one metric. Explicitly distinguish total values from averages per record; averages per record are descriptive and do not establish conversion rates or causal relationships. For example, a category may have fewer enquiries but still have higher sales totals than another category; state both facts accurately. Never infer that a column named Sales is monetary revenue, units sold, or profit unless its meaning and units are provided. If a ratio is discussed, label it as a simple aggregate ratio and warn that it is not necessarily a conversion rate because the rows may not represent matched enquiry-to-sale journeys. Provide headings: 1) What the summary shows, 2) Category-level totals, 3) Data quality and limitations, 4) Useful business questions, 5) Recommended next analyses, 6) Practical actions. Include a separate time-trend interpretation in the relevant sections when timeTrend is available; otherwise say no reliable date trend was supplied. Use concise, specific language and explain when a conclusion cannot be drawn." },
       { role: "user", content: "Analyse these aggregate-only CSV statistics for a business user. Do not request or assume raw records.\n" + JSON.stringify(safeAnalysis) }
     ];
     const inference = await env.AI.run(MODEL, { messages, max_tokens: 1100, temperature: 0.15 });
