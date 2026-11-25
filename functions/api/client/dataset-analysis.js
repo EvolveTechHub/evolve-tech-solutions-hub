@@ -48,6 +48,32 @@ function parseCsv(text) {
   return rows;
 }
 
+function dateKey(value) {
+  const v = String(value || "").trim();
+  let m = v.match(/^(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})(?:[Tt ].*)?$/);
+  if (m) {
+    const y = Number(m[1]), month = Number(m[2]), day = Number(m[3]);
+    const d = new Date(Date.UTC(y, month - 1, day));
+    if (d.getUTCFullYear() === y && d.getUTCMonth() === month - 1 && d.getUTCDate() === day) return d.toISOString().slice(0, 10);
+  }
+  m = v.match(/^(\\d{1,2})[/-](\\d{1,2})[/-](\\d{4})$/);
+  if (m) {
+    const a = Number(m[1]), b = Number(m[2]), y = Number(m[3]);
+    const month = a > 12 ? b : b > 12 ? a : 0;
+    const day = a > 12 ? a : b > 12 ? b : 0;
+    if (month && day) {
+      const d = new Date(Date.UTC(y, month - 1, day));
+      if (d.getUTCFullYear() === y && d.getUTCMonth() === month - 1 && d.getUTCDate() === day) return d.toISOString().slice(0, 10);
+    }
+  }
+  m = v.match(/^(\\d{4})[-/](\\d{1,2})$/);
+  if (m) {
+    const y = Number(m[1]), month = Number(m[2]);
+    if (month >= 1 && month <= 12) return String(y).padStart(4, "0") + "-" + String(month).padStart(2, "0");
+  }
+  return null;
+}
+
 function numeric(value) {
   if (value.trim() === "") return null;
   const normalized = value.trim().replace(/,/g, "");
@@ -132,6 +158,44 @@ export async function onRequestPost({ request, env }) {
           label: label.slice(0, 60),
           count: group.count,
           values: group.sums.map(v => Number(v.toFixed(2)))
+        }))
+      };
+    }
+    let trendData = null;
+    const dateCandidates = columns.map((c, i) => ({ c, i })).filter(x => x.c.type !== "numeric");
+    let dateChoice = null, dateValues = null, bestDateRatio = 0;
+    for (const candidate of dateCandidates) {
+      const parsed = data.map(row => dateKey(row[candidate.i]));
+      const valid = parsed.filter(Boolean).length;
+      const ratio = data.length ? valid / data.length : 0;
+      const named = /date|time|day|month/i.test(candidate.c.name);
+      if (ratio >= 0.8 && (named || ratio > bestDateRatio)) {
+        dateChoice = candidate; dateValues = parsed; bestDateRatio = ratio;
+        if (named && ratio >= 0.8) break;
+      }
+    }
+    if (dateChoice && numericIndexes.length) {
+      const datedRows = data.map((row, i) => ({ key: dateValues[i], row })).filter(x => x.key);
+      const uniqueDays = new Set(datedRows.map(x => x.key)).size;
+      const granularity = uniqueDays > 90 ? "month" : "day";
+      const groups = new Map();
+      for (const item of datedRows) {
+        const key = granularity === "month" ? item.key.slice(0, 7) : item.key;
+        if (!groups.has(key)) groups.set(key, { count: 0, sums: numericIndexes.map(() => 0) });
+        const group = groups.get(key);
+        group.count++;
+        numericIndexes.forEach((columnIndex, seriesIndex) => {
+          const value = numeric(item.row[columnIndex]);
+          if (value !== null) group.sums[seriesIndex] += value;
+        });
+      }
+      trendData = {
+        dateColumn: dateChoice.c.name,
+        granularity,
+        excludedRows: data.length - datedRows.length,
+        series: numericIndexes.map(i => headers[i]),
+        points: [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-240).map(([date, group]) => ({
+          date, count: group.count, values: group.sums.map(v => Number(v.toFixed(2)))
         }))
       };
     }
