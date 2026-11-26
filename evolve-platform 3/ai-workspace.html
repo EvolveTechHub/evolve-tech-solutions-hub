@@ -296,6 +296,35 @@ async function reportLogoJpeg(){
  const encoded=canvas.toDataURL("image/jpeg",0.88).split(",")[1];const raw=atob(encoded),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
  return {bytes,width:canvas.width,height:canvas.height};
 }
+
+function exportCsvRows(text){
+ const rows=[];let row=[],cell="",quoted=false;
+ for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];if(quoted){if(c==='"'&&n==='"'){cell+='"';i++;}else if(c==='"')quoted=false;else cell+=c;}else if(c==='"')quoted=true;else if(c===","){row.push(cell);cell="";}else if(c==="\n"){row.push(cell);rows.push(row);row=[];cell="";}else if(c!=="\r")cell+=c;}
+ if(cell.length||row.length){row.push(cell);rows.push(row);}return rows;
+}
+function exportXmlEscape(v){return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;");}
+function exportDownload(blob,name){const url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1200);}
+function exportName(ext){return (reportBrand().replace(/[^a-z0-9]+/gi,"-").replace(/^-|-$/g,"")||"Client")+"-Analytics-Management-Report."+ext;}
+async function downloadAnalyticsWorkbook(){
+ const a=lastDatasetAnalysis;if(!a)return;const sheets=[],file=document.getElementById("datasetFile")?.files?.[0];
+ if(file)sheets.push(["Uploaded Data",exportCsvRows(await file.text())]);
+ sheets.push(["KPI Summary",[["Measure","Type","Count","Minimum","Median","Mean","Maximum","Missing","Distinct"],...a.columnSummaries.map(c=>[c.name,c.type,c.numeric?.count??"",c.numeric?.min??"",c.numeric?.median??"",c.numeric?.mean??"",c.numeric?.max??"",c.missing,c.distinct])]]);
+ if(a.chartData)sheets.push(["Category Totals",[[a.chartData.category,"Records",...a.chartData.series],...a.chartData.points.map(p=>[p.label,p.count,...p.values])]]);
+ if(a.trendData)sheets.push(["Time Series",[["Period","Records",...a.trendData.series],...a.trendData.points.map(p=>[p.date,p.count,...p.values])]]);
+ if(a.trendData?.anomalies?.findings?.length)sheets.push(["Anomaly Flags",[["Period","Metric","Observed","Dataset Median","Direction","Method"],...a.trendData.anomalies.findings.map(x=>[x.period,x.metric,x.value,x.median,x.direction,x.method])]]);
+ if(a.forecastData?.metrics?.length){const rows=[["Metric","Status","Model","Quality","Period","Estimate","Indicative Lower","Indicative Upper","Selected MAE","WAPE %"]];for(const m of a.forecastData.metrics)for(const p of m.forecasts||[])rows.push([m.metric,m.status,m.model,m.quality,p.period,p.estimate,p.lower,p.upper,m.validation?.selectedMae,m.validation?.wapePercent]);sheets.push(["Forecasts",rows]);}
+ const xmlSheets=sheets.map(s=>{const rows=s[1].map(r=>"<Row>"+r.map(v=>"<Cell><Data ss:Type=\""+(typeof v==="number"&&Number.isFinite(v)?"Number":"String")+"\">"+exportXmlEscape(v)+"</Data></Cell>").join("")+"</Row>").join("");return "<Worksheet ss:Name=\""+exportXmlEscape(s[0].slice(0,31))+"\"><Table>"+rows+"</Table></Worksheet>";}).join("");
+ const xml="<?xml version=\"1.0\"?><Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\"><DocumentProperties xmlns=\"urn:schemas-microsoft-com:office:office\"><Title>"+exportXmlEscape(reportBrand())+" Analytics Workbook</Title><Author>"+exportXmlEscape(reportBrand())+"</Author></DocumentProperties>"+xmlSheets+"</Workbook>";
+ exportDownload(new Blob([xml],{type:"application/vnd.ms-excel;charset=utf-8"}),exportName("xls"));
+}
+function downloadNarrativeHtml(){
+ const a=lastDatasetAnalysis;if(!a)return;const lines=managementReportLines();
+ const body=lines.map(line=>line.trim()?"<p>"+exportXmlEscape(line)+"</p>":"").join("");
+ let table="";if(a.chartData)table="<h2>Category totals</h2><table><tr><th>"+exportXmlEscape(a.chartData.category)+"</th><th>Records</th>"+a.chartData.series.map(s=>"<th>"+exportXmlEscape(s)+"</th>").join("")+"</tr>"+a.chartData.points.map(p=>"<tr><td>"+exportXmlEscape(p.label)+"</td><td>"+p.count+"</td>"+p.values.map(v=>"<td>"+v+"</td>").join("")+"</tr>").join("")+"</table>";
+ const html="<!doctype html><html><head><meta charset=\"utf-8\"><title>"+exportXmlEscape(reportBrand())+" Analytics Report</title><style>body{font:16px/1.65 Arial,sans-serif;max-width:980px;margin:40px auto;padding:0 22px;color:#183443}h1,h2{color:#073847}p{margin:10px 0}table{width:100%;border-collapse:collapse;margin:18px 0}td,th{border:1px solid #dce7e9;padding:9px;text-align:left}th{background:#e8f4f3}@media print{body{margin:12mm}}</style></head><body><h1>Analytics Management Report</h1><h2>Prepared for "+exportXmlEscape(reportBrand())+"</h2>"+body+table+"</body></html>";
+ exportDownload(new Blob([html],{type:"text/html;charset=utf-8"}),exportName("html"));
+}
+
 function downloadManagementPdf(){
  const lines=managementReportLines();if(!lines.length)return;
   const paragraphs=[];let paragraph=[];for(const line of lines){if(!line.trim()){if(paragraph.length){paragraphs.push(paragraph);paragraph=[];}continue;}paragraph.push(line);}if(paragraph.length)paragraphs.push(paragraph);
@@ -520,7 +549,9 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
    finally{insightButton.disabled=false;insightButton.textContent="Generate AI business insights";}
   });
   const reportButton=document.createElement("button");reportButton.type="button";reportButton.className="secondary";reportButton.textContent="Download management report (PDF)";reportButton.addEventListener("click",()=>downloadManagementPdf());
-  insightWrap.append(insightButton,insightStatus,reportButton);results.append(insightWrap);
+  const workbookButton=document.createElement("button");workbookButton.type="button";workbookButton.className="secondary";workbookButton.textContent="Download Excel workbook";workbookButton.addEventListener("click",()=>downloadAnalyticsWorkbook());
+  const htmlButton=document.createElement("button");htmlButton.type="button";htmlButton.className="secondary";htmlButton.textContent="Download detailed HTML report";htmlButton.addEventListener("click",()=>downloadNarrativeHtml());
+  insightWrap.append(insightButton,insightStatus,reportButton,workbookButton,htmlButton);results.append(insightWrap);
   const note=document.createElement("p");note.className="smallprint";note.textContent=data.notice;results.append(note);
   lastDatasetAnalysis=a;
   results.hidden=false;status.textContent="Dataset analysis completed. Review the summaries and column types before drawing conclusions.";
