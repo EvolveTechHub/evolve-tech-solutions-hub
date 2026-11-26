@@ -59,7 +59,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color
 <body>
 <header>
 <a href="index.html"><img src="assets/evolve-logo.jpg" alt="Evolve Technology Solutions Hub"></a>
-<nav aria-label="Main navigation"><a href="index.html">Home</a><a href="index.html#solutions" aria-current="page">AI Solutions</a><a href="courses.html">Academy</a><a href="workspace.html">Client Workspace</a><a href="client.html">Client Account</a></nav>
+<nav aria-label="Main navigation"><a href="index.html">Home</a><a href="index.html#solutions" aria-current="page">AI Solutions</a><a href="courses.html">Academy</a><a href="client-dashboard.html">My Dashboard</a><a href="workspace.html">Client Workspace</a><a href="client.html">Client Account</a></nav>
 </header>
 <main class="ai-shell">
 <section class="ai-hero">
@@ -171,24 +171,38 @@ document.getElementById("workspaceTitle").textContent="Configure your "+service.
 document.getElementById("workspaceIntro").textContent=service.intro+" "+service.hint;
 let signedIn=false,latestResult="",latestMeta="",lastDatasetAnalysis=null,latestDatasetInsights="";
 async function loadAccount(){
+ const history=document.getElementById("aiHistory");
+ history.textContent="Checking your Client Account session…";
  try{
   const r=await fetch("/api/client/session",{cache:"no-store",credentials:"same-origin"});
-  const d=r.ok?await r.json():null;
+  if(!r.ok)throw new Error("Your account session could not be checked (HTTP "+r.status+"). Please refresh or open My Dashboard.");
+  const d=await r.json();
   if(d&&d.authenticated&&d.client){
-   signedIn=true;document.getElementById("fullName").value=d.client.name||"";
+   signedIn=true;
+   document.getElementById("fullName").value=d.client.name||"";
    const brandField=document.getElementById("reportBrandName");if(brandField&&!brandField.value)brandField.value=d.client.organisation||d.client.name||"";
    document.getElementById("email").value=d.client.email||"";
    document.getElementById("organisation").value=d.client.organisation||"";
    document.getElementById("aiRunNote").textContent="Signed in. AI tasks will be saved to this Client Account. Initial limit: 3 tasks per account per 24 hours.";
-   loadHistory();
-  }else{signedIn=false;document.getElementById("aiRunNote").textContent="Sign in to your Client Account before running AI tasks. Initial limit: 3 tasks per account per 24 hours.";}
- }catch{signedIn=false;}
+   await loadHistory();
+  }else{
+   signedIn=false;
+   document.getElementById("aiRunNote").textContent="This browser session is not signed in. Open My Dashboard or sign in to your Client Account before running AI tasks.";
+   history.textContent="No active Client Account session was detected on this page. Use My Dashboard to check your account, or sign in again on this same preview address.";
+  }
+ }catch(error){
+  signedIn=false;
+  document.getElementById("aiRunNote").textContent="We could not verify your Client Account session. Refresh this page or open My Dashboard.";
+  history.textContent=error.message||"Could not verify your account session.";
+ }
 }
 async function loadHistory(){
  const target=document.getElementById("aiHistory");
+ target.textContent="Loading your saved AI tasks…";
  try{
   const r=await fetch("/api/client/ai-tasks",{cache:"no-store",credentials:"same-origin"});
-  const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.message||"History unavailable.");
+  const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.message||"History unavailable (HTTP "+r.status+").");
+  if(!Array.isArray(d.tasks))throw new Error("The task-history response was not in the expected format.");
   if(!d.tasks.length){target.textContent="No AI tasks saved yet.";return;}
   target.replaceChildren();
   for(const task of d.tasks){
