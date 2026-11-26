@@ -671,7 +671,7 @@ datasetFileInput.addEventListener("change",async()=>{
   if(file.size>5*1024*1024)throw new Error("The workbook exceeds the 5 MB file-size limit.");
   if(!window.XLSX)throw new Error("The Excel reader could not be loaded.");
   const wb=XLSX.read(await file.arrayBuffer(),{type:"array",bookVBA:false});
-  const names=wb.SheetNames.filter(name=>wb.Workbook?.Sheets?.find(x=>x.name===name)?.Hidden!==1);
+  const names=wb.SheetNames.filter(name=>!(wb.Workbook?.Sheets?.find(x=>x.name===name)?.Hidden));
   if(!names.length)throw new Error("No visible worksheets were found.");
   names.forEach(name=>{const option=document.createElement("option");option.value=name;option.textContent=name;sheetPicker.append(option);});
   sheetPickerWrap.hidden=false;
