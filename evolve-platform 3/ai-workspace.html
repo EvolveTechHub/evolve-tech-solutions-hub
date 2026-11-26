@@ -333,18 +333,44 @@ function exportXmlEscape(v){return String(v??"").replace(/&/g,"&amp;").replace(/
 function exportDownload(blob,name){const url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1200);}
 function exportName(ext){return (reportBrand().replace(/[^a-z0-9]+/gi,"-").replace(/^-|-$/g,"")||"Client")+"-Analytics-Management-Report."+ext;}
 async function downloadAnalyticsWorkbook(){
- const a=lastDatasetAnalysis;if(!a)return;const sheets=[],file=document.getElementById("datasetFile")?.files?.[0];
+ const a=lastDatasetAnalysis;if(!a)return;
+ const sheets=[],file=document.getElementById("datasetFile")?.files?.[0];
  if(file)sheets.push(["Uploaded Data",exportCsvRows(await file.text())]);
- sheets.push(["KPI Summary",[["Measure","Type","Count","Minimum","Median","Mean","Maximum","Missing","Distinct"],...a.columnSummaries.map(c=>[c.name,c.type,c.numeric?.count??"",c.numeric?.min??"",c.numeric?.median??"",c.numeric?.mean??"",c.numeric?.max??"",c.missing,c.distinct])]]);
+ sheets.push(["KPI Summary",[["Measure","Type","Valid values","Minimum","Median","Mean","Maximum","Missing","Distinct"],...a.columnSummaries.map(c=>[c.name,c.type,c.numeric?.count??"",c.numeric?.min??"",c.numeric?.median??"",c.numeric?.mean??"",c.numeric?.max??"",c.missing,c.distinct])]]);
  if(a.chartData)sheets.push(["Category Totals",[[a.chartData.category,"Records",...a.chartData.series],...a.chartData.points.map(p=>[p.label,p.count,...p.values])]]);
  if(a.trendData)sheets.push(["Time Series",[["Period","Records",...a.trendData.series],...a.trendData.points.map(p=>[p.date,p.count,...p.values])]]);
- if(a.trendData?.anomalies?.findings?.length)sheets.push(["Anomaly Flags",[["Period","Metric","Observed","Dataset Median","Direction","Method"],...a.trendData.anomalies.findings.map(x=>[x.period,x.metric,x.value,x.median,x.direction,x.method])]]);
- if(a.forecastData?.metrics?.length){const rows=[["Metric","Status","Model","Quality","Period","Estimate","Indicative Lower","Indicative Upper","Selected MAE","WAPE %"]];for(const m of a.forecastData.metrics)for(const p of m.forecasts||[])rows.push([m.metric,m.status,m.model,m.quality,p.period,p.estimate,p.lower,p.upper,m.validation?.selectedMae,m.validation?.wapePercent]);sheets.push(["Forecasts",rows]);}
- const xmlSheets=sheets.map(s=>{const rows=s[1].map(r=>"<Row>"+r.map(v=>"<Cell><Data ss:Type=\""+(typeof v==="number"&&Number.isFinite(v)?"Number":"String")+"\">"+exportXmlEscape(v)+"</Data></Cell>").join("")+"</Row>").join("");return "<Worksheet ss:Name=\""+exportXmlEscape(s[0].slice(0,31))+"\"><Table>"+rows+"</Table></Worksheet>";}).join("");
- const xml="<?xml version=\"1.0\"?><Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\"><DocumentProperties xmlns=\"urn:schemas-microsoft-com:office:office\"><Title>"+exportXmlEscape(reportBrand())+" Analytics Workbook</Title><Author>"+exportXmlEscape(reportBrand())+"</Author></DocumentProperties>"+xmlSheets+"</Workbook>";
- exportDownload(new Blob([xml],{type:"application/vnd.ms-excel;charset=utf-8"}),exportName("xls"));
+ if(a.trendData?.anomalies?.findings?.length)sheets.push(["Anomaly Flags",[["Period","Metric","Observed","Median","Direction","Method"],...a.trendData.anomalies.findings.map(x=>[x.period,x.metric,x.value,x.median,x.direction,x.method])]]);
+ if(a.forecastData?.metrics?.length){const rows=[["Metric","Status","Model","Quality","Period","Estimate","Lower range","Upper range","Selected MAE","WAPE %"]];for(const m of a.forecastData.metrics){for(const p of m.forecasts||[])rows.push([m.metric,m.status,m.model,m.quality,p.period,p.estimate,p.lower,p.upper,m.validation?.selectedMae??"",m.validation?.wapePercent??""]);}sheets.push(["Forecasts",rows]);}
+ sheets.push(["Report Narrative",[["Section or observation"],...managementReportLines().filter(x=>x.trim()).map(x=>[x])]]);
+ const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+ const col=n=>{let x="";while(n){x=String.fromCharCode(65+(n-1)%26)+x;n=Math.floor((n-1)/26);}return x;};
+ const entries={},names=[],used=new Set();
+ sheets.forEach((sheet,i)=>{
+  let name=sheet[0].replace(/[\\/:*?\[\]]/g," ").slice(0,31)||"Data",base=name,k=2;
+  while(used.has(name.toLowerCase())){const suffix=" "+k++;name=base.slice(0,31-suffix.length)+suffix;}used.add(name.toLowerCase());names.push(name);
+  const rows=sheet[1]||[],max=Math.max(1,...rows.map(r=>r.length));
+  const body=rows.map((row,ri)=>'<row r="'+(ri+1)+'">'+row.map((v,ci)=>{const ref=col(ci+1)+(ri+1),style=ri===0?' s="1"':"";return typeof v==="number"&&Number.isFinite(v)?'<c r="'+ref+'"'+style+'><v>'+v+'</v></c>':'<c r="'+ref+'" t="inlineStr"'+style+'><is><t xml:space="preserve">'+esc(v)+'</t></is></c>';}).join("")+'</row>').join("");
+  entries["xl/worksheets/sheet"+(i+1)+".xml"]='<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetData>'+body+'</sheetData><autoFilter ref="A1:'+col(max)+Math.max(1,rows.length)+'"/></worksheet>';
+ });
+ entries["[Content_Types].xml"]='<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheets.map((_,i)=>'<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join("")+'</Types>';
+ entries["_rels/.rels"]='<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+ entries["xl/workbook.xml"]='<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+names.map((n,i)=>'<sheet name="'+esc(n)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>').join("")+'</sheets></workbook>';
+ entries["xl/_rels/workbook.xml.rels"]='<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+sheets.map((_,i)=>'<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>').join("")+'<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+ entries["xl/styles.xml"]='<?xml version="1.0"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Aptos"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Aptos"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF087F8C"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0"/></cellXfs></styleSheet>';
+ const u16=n=>[n&255,(n>>>8)&255],u32=n=>[n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255];
+ const join=parts=>{const out=new Uint8Array(parts.reduce((z,p)=>z+p.length,0));let at=0;for(const p of parts){out.set(p,at);at+=p.length;}return out;};
+ const tab=new Uint32Array(256);for(let n=0;n<256;n++){let x=n;for(let j=0;j<8;j++)x=(x&1)?(0xedb88320^(x>>>1)):(x>>>1);tab[n]=x>>>0;}
+ const crc=d=>{let x=0xffffffff;for(const v of d)x=tab[(x^v)&255]^(x>>>8);return(x^0xffffffff)>>>0;};
+ const local=[],central=[];let offset=0;
+ for(const name of Object.keys(entries)){const nb=new TextEncoder().encode(name),data=new TextEncoder().encode(entries[name]),sum=crc(data);
+  const lh=join([new Uint8Array([80,75,3,4]),new Uint8Array(u16(20)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u32(sum)),new Uint8Array(u32(data.length)),new Uint8Array(u32(data.length)),new Uint8Array(u16(nb.length)),new Uint8Array(u16(0)),nb,data]);
+  const ch=join([new Uint8Array([80,75,1,2]),new Uint8Array(u16(20)),new Uint8Array(u16(20)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u32(sum)),new Uint8Array(u32(data.length)),new Uint8Array(u32(data.length)),new Uint8Array(u16(nb.length)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u32(0)),new Uint8Array(u32(offset)),nb]);
+  local.push(lh);central.push(ch);offset+=lh.length;
+ }
+ const csize=central.reduce((z,p)=>z+p.length,0),end=join([new Uint8Array([80,75,5,6]),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(central.length)),new Uint8Array(u16(central.length)),new Uint8Array(u32(csize)),new Uint8Array(u32(offset)),new Uint8Array(u16(0))]);
+ const blob=new Blob([join([...local,...central,end])],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+ exportDownload(blob,exportName("xlsx"));
 }
-
 function downloadAnalyticsPresentation(){
  const a=lastDatasetAnalysis;if(!a)return;
  const sections=[];let section={title:"Executive overview",items:[]};
@@ -691,7 +717,7 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
    finally{insightButton.disabled=false;insightButton.textContent="Generate AI business insights";}
   });
   const reportButton=document.createElement("button");reportButton.type="button";reportButton.className="secondary";reportButton.textContent="Download management report (PDF)";reportButton.addEventListener("click",()=>downloadManagementPdf());
-  const workbookButton=document.createElement("button");workbookButton.type="button";workbookButton.className="secondary";workbookButton.textContent="Download Excel workbook";workbookButton.addEventListener("click",()=>downloadAnalyticsWorkbook());
+  const workbookButton=document.createElement("button");workbookButton.type="button";workbookButton.className="secondary";workbookButton.textContent="Download Excel workbook (.xlsx)";workbookButton.addEventListener("click",()=>downloadAnalyticsWorkbook());
   const htmlButton=document.createElement("button");htmlButton.type="button";htmlButton.className="secondary";htmlButton.textContent="Download detailed HTML report";htmlButton.addEventListener("click",()=>downloadNarrativeHtml());
 
   const csvButton=document.createElement("button");csvButton.type="button";csvButton.className="secondary";csvButton.textContent="Download analysis summary (CSV)";csvButton.addEventListener("click",()=>{const rows=[["Section","Item","Value"]];for(const col of lastDatasetAnalysis.columnSummaries){rows.push(["KPI",col.name,JSON.stringify(col.numeric||{missing:col.missing,distinct:col.distinct,topValues:col.topValues})]);}for(const p of lastDatasetAnalysis.chartData?.points||[])rows.push(["Category",p.label,JSON.stringify({records:p.count,totals:p.values})]);for(const p of lastDatasetAnalysis.trendData?.points||[])rows.push(["Time series",p.date,JSON.stringify({records:p.count,totals:p.values})]);const csv=rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");exportDownload(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}),exportName("csv"));});
