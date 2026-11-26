@@ -374,7 +374,7 @@ async function downloadAnalyticsWorkbook(){
  const col=n=>{let x="";while(n){x=String.fromCharCode(65+(n-1)%26)+x;n=Math.floor((n-1)/26);}return x;};
  const entries={},names=[],used=new Set();
  sheets.forEach((sheet,i)=>{
-  let name=sheet[0].replace(/[\\/:*?\[\]]/g," ").slice(0,31)||"Data",base=name,k=2;
+  let name=sheet[0].split("").filter(ch=>!"\\/:*?[]".includes(ch)).join("").slice(0,31)||"Data",base=name,k=2;
   while(used.has(name.toLowerCase())){const suffix=" "+k++;name=base.slice(0,31-suffix.length)+suffix;}used.add(name.toLowerCase());names.push(name);
   const rows=sheet[1]||[],max=Math.max(1,...rows.map(r=>r.length));
   const widths=Array.from({length:max},(_,ci)=>{const w=Math.max(12,Math.min(42,...[...rows.slice(0,80).map(r=>String(r[ci]??"").length+2),42]));return '<col min="'+(ci+1)+'" max="'+(ci+1)+'" width="'+w+'" customWidth="1"/>';}).join("");
@@ -435,7 +435,7 @@ function downloadNarrativeHtml(){
  const a=lastDatasetAnalysis;if(!a)return;
  const lines=managementReportLines();
  const esc=v=>exportXmlEscape(String(v??""));
- const table=(headers,rows)=>"<div class=\"table-wrap\"><table><thead><tr>"+headers.map(h=>"<th>"+esc(h)+"</th>").join("")+"</tr></thead><tbody>"+(rows.length?rows.map(row=>"<tr>"+row.map(v=>"<td>"+esc(v)</td>").join("")+"</tr>").join(""):"<tr><td colspan=\""+headers.length+"\">No results available for this section.</td></tr>")+"</tbody></table></div>";
+ const table=(headers,rows)=>"<div class=\"table-wrap\"><table><thead><tr>"+headers.map(h=>"<th>"+esc(h)+"</th>").join("")+"</tr></thead><tbody>"+(rows.length?rows.map(row=>"<tr>"+row.map(v=>"<td>"+esc(v)+"</td>").join("")+"</tr>").join(""):"<tr><td colspan=\""+headers.length+"\">No results available for this section.</td></tr>")+"</tbody></table></div>";
  const columnRows=a.columnSummaries.map(c=>[c.name,c.type,c.numeric?.count??"",c.missing,c.distinct,c.numeric?.min??"",c.numeric?.median??"",c.numeric?.mean??"",c.numeric?.max??"",(c.topValues||[]).slice(0,5).map(v=>v.value+" ("+v.count+")").join("; ")]);
  const categoryRows=(a.chartData?.points||[]).map(p=>[p.label,p.count,...(p.values||[])]);
  const trendRows=(a.trendData?.points||[]).map(p=>[p.date,p.count,...(p.values||[])]);
