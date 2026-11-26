@@ -413,6 +413,19 @@ function downloadAnalyticsPresentation(){
  exportDownload(zip(files),exportName("pptx"));
 }
 
+function downloadAnalyticsRtf(){
+ const lines=managementReportLines();if(!lines.length)return;
+ const esc=v=>String(v??'').replace(/\\/g,'\\\\').replace(/[{}]/g,'\\
+function downloadNarrativeHtml(){').replace(/[^\\x20-\\x7E]/g,' ');
+ const body=lines.map(line=>{if(!line.trim())return '\\par ';const heading=/^(?:[1-9]|1[0-2])\\.\\s/.test(line);return (heading?'\\par\\sb240\\sa100\\b\\fs28 ':'\\par\\sa100\\fs22 ')+esc(line)+(heading?'\\b0':'')+' ';}).join('');
+ const rtf='{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Aptos;}}\\viewkind4\\uc1\\f0\\fs22 '+esc('ANALYTICS MANAGEMENT REPORT')+'\\par\\par '+esc('Prepared for: '+reportBrand())+'\\par '+body+'\\par\\par\\fs18 '+esc('This report describes the uploaded dataset only. Verify findings against original records.')+'}';
+ exportDownload(new Blob([rtf],{type:'application/rtf'}),exportName('rtf'));
+}
+function downloadAnalysisJson(){
+ const a=lastDatasetAnalysis;if(!a)return;
+ const payload={preparedFor:reportBrand(),generatedAt:new Date().toISOString(),analysis:a,managementNarrative:managementReportLines(),notes:['Results describe the uploaded dataset only.','Statistical associations do not establish causation.','Forecasts are experimental and must be reviewed against validation quality.']};
+ exportDownload(new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'}),exportName('json'));
+}
 function downloadNarrativeHtml(){
  const a=lastDatasetAnalysis;if(!a)return;const lines=managementReportLines();
  const body=lines.map(line=>line.trim()?"<p>"+exportXmlEscape(line)+"</p>":"").join("");
@@ -723,7 +736,9 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
   const csvButton=document.createElement("button");csvButton.type="button";csvButton.className="secondary";csvButton.textContent="Download analysis summary (CSV)";csvButton.addEventListener("click",()=>{const rows=[["Section","Item","Value"]];for(const col of lastDatasetAnalysis.columnSummaries){rows.push(["KPI",col.name,JSON.stringify(col.numeric||{missing:col.missing,distinct:col.distinct,topValues:col.topValues})]);}for(const p of lastDatasetAnalysis.chartData?.points||[])rows.push(["Category",p.label,JSON.stringify({records:p.count,totals:p.values})]);for(const p of lastDatasetAnalysis.trendData?.points||[])rows.push(["Time series",p.date,JSON.stringify({records:p.count,totals:p.values})]);const csv=rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");exportDownload(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}),exportName("csv"));});
 
   const pptButton=document.createElement("button");pptButton.type="button";pptButton.className="secondary";pptButton.textContent="Download PowerPoint presentation";pptButton.addEventListener("click",()=>downloadAnalyticsPresentation());
-  insightWrap.append(insightButton,insightStatus,reportButton,workbookButton,pptButton,htmlButton,csvButton);results.append(insightWrap);
+  const rtfButton=document.createElement("button");rtfButton.type="button";rtfButton.className="secondary";rtfButton.textContent="Download editable Word-compatible report";rtfButton.addEventListener("click",()=>downloadAnalyticsRtf());
+  const jsonButton=document.createElement("button");jsonButton.type="button";jsonButton.className="secondary";jsonButton.textContent="Download analysis data (JSON)";jsonButton.addEventListener("click",()=>downloadAnalysisJson());
+  insightWrap.append(insightButton,insightStatus,reportButton,workbookButton,pptButton,rtfButton,jsonButton,htmlButton,csvButton);results.append(insightWrap);
   const note=document.createElement("p");note.className="smallprint";note.textContent=data.notice;results.append(note);
   lastDatasetAnalysis=a;
   results.hidden=false;status.textContent="Dataset analysis completed. Review the summaries and column types before drawing conclusions.";
