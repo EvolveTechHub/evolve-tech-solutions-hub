@@ -296,11 +296,13 @@ export async function onRequestPost({ request, env }) {
     if (!accountId) return clientJson({ ok: false, message: "Sign in to your Client Account before analysing a dataset." }, 401);
     const form = await request.formData();
     const file = form.get("file");
-    if (!(file instanceof File)) return clientJson({ ok: false, message: "Choose a CSV file to analyse." }, 400);
+    const sourceFileName = form.get("sourceFileName");
+    const sourceSheetName = form.get("sourceSheetName");
+    if (!(file instanceof File)) return clientJson({ ok: false, message: "Choose a CSV or Excel worksheet to analyse." }, 400);
     if (!file.name.toLowerCase().endsWith(".csv") || (file.type && !["text/csv", "application/vnd.ms-excel", "text/plain", "application/octet-stream"].includes(file.type))) {
-      return clientJson({ ok: false, message: "For this first release, upload a CSV file only. Excel support is coming next." }, 415);
+      return clientJson({ ok: false, message: "The selected dataset could not be accepted. Please upload a valid CSV or Excel worksheet." }, 415);
     }
-    if (file.size < 1 || file.size > MAX_BYTES) return clientJson({ ok: false, message: "The CSV must be between 1 byte and 5 MB." }, 413);
+    if (file.size < 1 || file.size > MAX_BYTES) return clientJson({ ok: false, message: "The dataset must be between 1 byte and 5 MB." }, 413);
     const text = await file.text();
     if (text.includes("\u0000")) return clientJson({ ok: false, message: "This file does not appear to be a valid text CSV." }, 400);
     let rows;
@@ -420,7 +422,8 @@ export async function onRequestPost({ request, env }) {
     return clientJson({
       ok: true,
       analysis: {
-        fileName: file.name.slice(0, 160),
+        fileName: String(sourceFileName || file.name).slice(0, 160),
+        sourceSheetName: String(sourceSheetName || "").slice(0, 100),
         rows: data.length,
         columnCount: headers.length,
         duplicateRows: duplicates,
@@ -430,7 +433,7 @@ export async function onRequestPost({ request, env }) {
         trendData,
         forecastData: buildForecast(trendData)
       },
-      notice: "Analysis was computed from the uploaded CSV in memory. The raw file was not saved. Review column types and data quality before using the results."
+      notice: "Analysis was computed from the selected dataset in memory. The uploaded source file was not saved. Review column types and data quality before using the results."
     });
   } catch {
     return clientJson({ ok: false, message: "Dataset analysis could not be completed. Please check the CSV and try again." }, 500);
