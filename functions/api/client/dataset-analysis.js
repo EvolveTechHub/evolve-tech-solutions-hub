@@ -337,10 +337,15 @@ export async function onRequestPost({ request, env }) {
       } else {
         const counts = new Map();
         for (const v of nonempty) counts.set(v, (counts.get(v) || 0) + 1);
-        summary.topValues = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([value, count]) => ({ value: value.slice(0, 120), count }));
+        const privateField = /(^|\\b)(name|email|e-mail|phone|mobile|telephone|address|username|user\\s*id|customer\\s*id|client\\s*id|student\\s*id|employee\\s*id|passport|national\\s*id|account\\s*number)(\\b|$)/i.test(name);
+        const personalValue = value => /[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/i.test(value) || /(?:\\+?\\d[\\d ().-]{7,}\\d)/.test(value);
+        summary.privacySuppressed = privateField || nonempty.some(personalValue);
+        summary.topValues = summary.privacySuppressed ? [] : [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([value, count]) => ({ value: value.slice(0, 120), count }));
       }
       return summary;
     });
+    const normalizedHeaders = headers.map(h => h.trim().toLowerCase());
+    const repeatedHeaderRows = data.filter(row => row.length === normalizedHeaders.length && row.every((value, index) => String(value ?? "").trim().toLowerCase() === normalizedHeaders[index])).length;
     const seen = new Set();
     let duplicates = 0;
     for (const r of data) { const key = JSON.stringify(r); if (seen.has(key)) duplicates++; else seen.add(key); }
@@ -427,6 +432,7 @@ export async function onRequestPost({ request, env }) {
         rows: data.length,
         columnCount: headers.length,
         duplicateRows: duplicates,
+        qualityFlags: { repeatedHeaderRows },
         preview,
         columnSummaries: columns,
         chartData,
