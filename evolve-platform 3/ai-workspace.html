@@ -317,6 +317,46 @@ async function downloadAnalyticsWorkbook(){
  const xml="<?xml version=\"1.0\"?><Workbook xmlns=\"urn:schemas-microsoft-com:office:spreadsheet\" xmlns:ss=\"urn:schemas-microsoft-com:office:spreadsheet\"><DocumentProperties xmlns=\"urn:schemas-microsoft-com:office:office\"><Title>"+exportXmlEscape(reportBrand())+" Analytics Workbook</Title><Author>"+exportXmlEscape(reportBrand())+"</Author></DocumentProperties>"+xmlSheets+"</Workbook>";
  exportDownload(new Blob([xml],{type:"application/vnd.ms-excel;charset=utf-8"}),exportName("xls"));
 }
+
+function downloadAnalyticsPresentation(){
+ const a=lastDatasetAnalysis;if(!a)return;
+ const sections=[];let section={title:"Executive overview",items:[]};
+ for(const line of managementReportLines()){if(/^[1-9]\.\s/.test(line)){if(section.items.length)sections.push(section);section={title:line,items:[]};}else if(line.trim())section.items.push(line);}
+ if(section.items.length)sections.push(section);
+ const slides=sections.slice(0,10),files={};
+ const esc=exportXmlEscape;
+ const u16=n=>[n&255,(n>>>8)&255],u32=n=>[n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255];
+ const join=parts=>{const out=new Uint8Array(parts.reduce((s,p)=>s+p.length,0));let at=0;for(const p of parts){out.set(p,at);at+=p.length;}return out;};
+ const crcTable=new Uint32Array(256);for(let n=0;n<256;n++){let x=n;for(let k=0;k<8;k++)x=(x&1)?(0xedb88320^(x>>>1)):(x>>>1);crcTable[n]=x>>>0;}
+ const crc=data=>{let x=0xffffffff;for(const b of data)x=crcTable[(x^b)&255]^(x>>>8);return (x^0xffffffff)>>>0;};
+ function zip(entries){
+  const local=[],central=[];let offset=0;
+  for(const name in entries){const nb=new TextEncoder().encode(name),data=new TextEncoder().encode(entries[name]),sum=crc(data);
+   const lh=join([new Uint8Array([80,75,3,4]),new Uint8Array(u16(20)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u32(sum)),new Uint8Array(u32(data.length)),new Uint8Array(u32(data.length)),new Uint8Array(u16(nb.length)),new Uint8Array(u16(0)),nb,data]);
+   const ch=join([new Uint8Array([80,75,1,2]),new Uint8Array(u16(20)),new Uint8Array(u16(20)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u32(sum)),new Uint8Array(u32(data.length)),new Uint8Array(u32(data.length)),new Uint8Array(u16(nb.length)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u32(0)),new Uint8Array(u32(offset)),nb]);
+   local.push(lh);central.push(ch);offset+=lh.length;
+  }
+  const csize=central.reduce((s,p)=>s+p.length,0),end=join([new Uint8Array([80,75,5,6]),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(central.length)),new Uint8Array(u16(central.length)),new Uint8Array(u32(csize)),new Uint8Array(u32(offset)),new Uint8Array(u16(0))]);
+  return new Blob([join([...local,...central,end])],{type:"application/vnd.openxmlformats-officedocument.presentationml.presentation"});
+ }
+ const contentTypes='<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/><Override PartName="/ppt/slideMasters/slideMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml"/><Override PartName="/ppt/slideLayouts/slideLayout1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml"/>'+slides.map((_,i)=>'<Override PartName="/ppt/slides/slide'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>').join("")+'</Types>';
+ files["[Content_Types].xml"]=contentTypes;
+ files["_rels/.rels"]='<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/></Relationships>';
+ files["ppt/presentation.xml"]='<?xml version="1.0"?><p:presentation xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldIdLst>'+slides.map((_,i)=>'<p:sldId id="'+(256+i)+'" r:id="rId'+(i+2)+'"/>').join("")+'</p:sldIdLst><p:sldSz cx="12192000" cy="6858000" type="wide"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>';
+ files["ppt/_rels/presentation.xml.rels"]='<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="slideMasters/slideMaster1.xml"/>'+slides.map((_,i)=>'<Relationship Id="rId'+(i+2)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+(i+1)+'.xml"/>').join("")+'</Relationships>';
+ files["ppt/slideMasters/slideMaster1.xml"]='<?xml version="1.0"?><p:sldMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMap accent1="087F8C" accent2="8CE8E1" accent3="244B5A" accent4="647783" accent5="A5B7BF" accent6="DCEFED" bg1="FFFFFF" bg2="F4F8FA" dk1="102B3B" dk2="18394A" folHlink="954F72" hlink="0563C1" lt1="FFFFFF" lt2="E8F4F3"/><p:sldLayoutIdLst><p:sldLayoutId id="1" r:id="rId1"/></p:sldMaster>';
+ files["ppt/slideMasters/_rels/slideMaster1.xml.rels"]='<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/></Relationships>';
+ files["ppt/slideLayouts/slideLayout1.xml"]='<?xml version="1.0"?><p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="blank"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>';
+ files["ppt/slideLayouts/_rels/slideLayout1.xml.rels"]='<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>';
+ slides.forEach((s,i)=>{
+  const shape=(id,y,text,isTitle)=>'<p:sp><p:nvSpPr><p:cNvPr id="'+id+'" name="Text '+id+'"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="650000" y="'+y+'"/><a:ext cx="11000000" cy="'+(isTitle?850000:600000)+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></p:spPr><p:txBody><a:bodyPr wrap="square"/><a:lstStyle/><a:p><a:r><a:rPr lang="en-US" sz="'+(isTitle?2700:1600)+'" b="'+(isTitle?1:0)+'"><a:solidFill><a:srgbClr val="'+(isTitle?"073847":"243E49")+'"/></a:solidFill></a:rPr><a:t>'+esc(text)+'</a:t></a:r><a:endParaRPr lang="en-US"/></a:p></p:txBody></p:sp>';
+  let shapes=shape(2,450000,s.title,true);s.items.slice(0,8).forEach((v,j)=>shapes+=shape(j+3,1550000+j*650000,v,false));
+  files["ppt/slides/slide"+(i+1)+".xml"]='<?xml version="1.0"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>'+shapes+'</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>';
+  files["ppt/slides/_rels/slide"+(i+1)+".xml.rels"]='<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/></Relationships>';
+ });
+ exportDownload(zip(files),exportName("pptx"));
+}
+
 function downloadNarrativeHtml(){
  const a=lastDatasetAnalysis;if(!a)return;const lines=managementReportLines();
  const body=lines.map(line=>line.trim()?"<p>"+exportXmlEscape(line)+"</p>":"").join("");
@@ -551,7 +591,8 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
   const reportButton=document.createElement("button");reportButton.type="button";reportButton.className="secondary";reportButton.textContent="Download management report (PDF)";reportButton.addEventListener("click",()=>downloadManagementPdf());
   const workbookButton=document.createElement("button");workbookButton.type="button";workbookButton.className="secondary";workbookButton.textContent="Download Excel workbook";workbookButton.addEventListener("click",()=>downloadAnalyticsWorkbook());
   const htmlButton=document.createElement("button");htmlButton.type="button";htmlButton.className="secondary";htmlButton.textContent="Download detailed HTML report";htmlButton.addEventListener("click",()=>downloadNarrativeHtml());
-  insightWrap.append(insightButton,insightStatus,reportButton,workbookButton,htmlButton);results.append(insightWrap);
+  const pptButton=document.createElement("button");pptButton.type="button";pptButton.className="secondary";pptButton.textContent="Download PowerPoint presentation";pptButton.addEventListener("click",()=>downloadAnalyticsPresentation());
+  insightWrap.append(insightButton,insightStatus,reportButton,workbookButton,pptButton,htmlButton);results.append(insightWrap);
   const note=document.createElement("p");note.className="smallprint";note.textContent=data.notice;results.append(note);
   lastDatasetAnalysis=a;
   results.hidden=false;status.textContent="Dataset analysis completed. Review the summaries and column types before drawing conclusions.";
