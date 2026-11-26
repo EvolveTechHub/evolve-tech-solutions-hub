@@ -406,7 +406,7 @@ function downloadManagementPdf(){
  if(chartAnalysis?.chartData?.points?.length&&chartAnalysis.chartData.points.some(p=>Number(p.values?.[0])>0))pages.push(["@@CHART_CATEGORY_PIE@@"]);
  if(chartAnalysis?.trendData?.points?.length>1)pages.push(["@@CHART_TIME_LINE@@"]);
  if(chartAnalysis?.trendData?.series?.length>=2&&chartAnalysis.trendData.points.length>=3)pages.push(["@@CHART_SCATTER@@"]);
- if(chartAnalysis?.trendData?.points?.length>=8)pages.push(["@@CHART_HISTOGRAM@@","@@CHART_BOXPLOT@@"]);
+ if(chartAnalysis?.trendData?.points?.length>=8){pages.push(["@@CHART_HISTOGRAM@@"]);pages.push(["@@CHART_BOXPLOT@@"]);}
  if(chartAnalysis?.forecastData?.metrics?.some(m=>m.status==="available"&&m.forecasts?.length))pages.push(["@@CHART_FORECAST@@"]);
 
  const enc=new TextEncoder(),objects=[];const addText=value=>{objects.push(enc.encode(value));return objects.length;};
