@@ -104,9 +104,9 @@ input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color
 <label class="option"><input type="checkbox" name="outputs" value="Prototype or proof of concept"><span>Prototype / proof of concept</span></label>
 </div>
 <section id="datasetPanel" hidden style="margin:22px 0;padding:18px;border:1px solid #b9dedd;border-radius:15px;background:#f4fbfa">
-<h3 style="margin:0 0 6px;color:#0a3948">Analyse a CSV dataset</h3>
-<p class="smallprint">Upload a sample or de-identified CSV (maximum 5 MB, 25,000 rows and 100 columns). Do not upload customer names, contact details, financial account data or other sensitive information. The raw file is processed in memory and is not saved.</p>
-<label for="datasetFile">CSV file</label><input id="datasetFile" type="file" accept=".csv,text/csv">
+<h3 style="margin:0 0 6px;color:#0a3948">Analyse an Excel or CSV dataset</h3>
+<p class="smallprint">Upload a sample or de-identified CSV or Excel workbook (.xlsx), maximum 5 MB, 25,000 data rows and 100 columns. Excel workbooks are read in your browser; choose a visible worksheet to analyse. Only the selected worksheet data is sent for analysis. Do not upload sensitive personal or account information. Files are processed in memory and are not saved.</p>
+<label for="datasetFile">Dataset file</label><input id="datasetFile" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><p class="hint">Supported: CSV and .xlsx. Legacy .xls, macro-enabled .xlsm and password-protected workbooks are not supported.</p><div id="sheetPickerWrap" hidden><label for="datasetSheet">Worksheet to analyse</label><select id="datasetSheet"></select></div>
 <div style="margin-top:16px;padding:14px;border:1px solid #d5e5e5;border-radius:12px;background:#fff">
 <strong>Report branding</strong>
 <p class="smallprint">The report will be branded for you or your organisation. Add a name and, optionally, your logo. Evolve branding will not be added to the report.</p>
@@ -148,11 +148,12 @@ input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color
 <p><a href="workspace.html">Open Client Workspace →</a></p>
 <hr style="border:0;border-top:1px solid #e3ebee;margin:22px 0">
 <h3>Data and files</h3>
-<p class="smallprint">The Data Analytics workspace accepts CSV files for in-memory descriptive analysis, category comparison charts, AI interpretation of aggregate statistics and an experimental three-period baseline forecast when at least 24 consecutive daily or monthly observations are available, with consistent date precision and complete metric values. Forecasts use six rolling validation periods to compare a linear trend against a last-period baseline; the trend is selected only when it improves validation error by at least 10%. Indicative ranges are not formal prediction intervals or guarantees. Raw files are not saved or sent to the AI model. Excel uploads are not enabled. Use sample or de-identified data only.</p>
+<p class="smallprint">The Data Analytics workspace accepts CSV and .xlsx Excel workbooks for in-memory descriptive analysis, category comparison charts, AI interpretation of aggregate statistics and an experimental three-period baseline forecast when at least 24 consecutive daily or monthly observations are available, with consistent date precision and complete metric values. Forecasts use six rolling validation periods to compare a linear trend against a last-period baseline; the trend is selected only when it improves validation error by at least 10%. Indicative ranges are not formal prediction intervals or guarantees. Uploaded source files are not saved or sent to the AI model. Excel worksheets are converted in your browser; only the selected worksheet data is sent to the analysis endpoint. Use sample or de-identified data only.</p>
 </aside>
 </div>
 </main>
 <footer><p>Evolve Technology Solutions Hub · AI Enterprise Workspace</p></footer>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script>
 (()=>{
 const services={
@@ -633,17 +634,61 @@ function downloadManagementPdf(){
  }
  build().catch(error=>{const status=document.getElementById("datasetMessage");status.textContent=error.message||"The PDF could not be created.";});
 }
+
+async function prepareDatasetUpload(file){
+ if(!/\.xlsx$/i.test(file.name))return file;
+ if(file.size>5*1024*1024)throw new Error("The workbook exceeds the 5 MB file-size limit.");
+ if(!window.XLSX)throw new Error("The Excel reader could not be loaded. Refresh the page or save the worksheet as CSV.");
+ const workbook=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:true,bookVBA:false});
+ const sheetName=document.getElementById("datasetSheet").value;
+ if(!sheetName||!workbook.Sheets[sheetName])throw new Error("Choose a valid worksheet before analysing the workbook.");
+ const sheet=workbook.Sheets[sheetName],range=sheet["!ref"]?XLSX.utils.decode_range(sheet["!ref"]):null;
+ if(!range)throw new Error("The selected worksheet is empty.");
+ if(range.e.r-range.s.r+1>25001)throw new Error("The selected worksheet exceeds the 25,000 data-row limit.");
+ if(range.e.c-range.s.c+1>100)throw new Error("The selected worksheet exceeds the 100-column limit.");
+ const matrix=XLSX.utils.sheet_to_json(sheet,{header:1,raw:true,defval:"",blankrows:false});
+ const encodeCell=value=>{
+  const v=value instanceof Date?value.toISOString().slice(0,10):String(value??"");
+  if(v.length>2000)throw new Error("A worksheet cell exceeds the 2,000-character limit.");
+  return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
+ };
+ const csv=matrix.map(row=>row.map(encodeCell).join(",")).join("\r\n");
+ const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+ if(blob.size>5*1024*1024)throw new Error("The selected worksheet expands beyond the 5 MB analysis limit.");
+ return new File([blob],file.name.replace(/\.xlsx$/i,"")+".csv",{type:"text/csv"});
+}
+
 loadAccount();
+
+const datasetFileInput=document.getElementById("datasetFile");
+const sheetPickerWrap=document.getElementById("sheetPickerWrap");
+const sheetPicker=document.getElementById("datasetSheet");
+datasetFileInput.addEventListener("change",async()=>{
+ sheetPicker.replaceChildren();sheetPickerWrap.hidden=true;
+ const file=datasetFileInput.files&&datasetFileInput.files[0];
+ if(!file||!/\.xlsx$/i.test(file.name))return;
+ try{
+  if(file.size>5*1024*1024)throw new Error("The workbook exceeds the 5 MB file-size limit.");
+  if(!window.XLSX)throw new Error("The Excel reader could not be loaded.");
+  const wb=XLSX.read(await file.arrayBuffer(),{type:"array",bookVBA:false});
+  const names=wb.SheetNames.filter(name=>wb.Workbook?.Sheets?.find(x=>x.name===name)?.Hidden!==1);
+  if(!names.length)throw new Error("No visible worksheets were found.");
+  names.forEach(name=>{const option=document.createElement("option");option.value=name;option.textContent=name;sheetPicker.append(option);});
+  sheetPickerWrap.hidden=false;
+  document.getElementById("datasetMessage").textContent="Workbook ready. Select the worksheet to analyse.";
+ }catch(error){document.getElementById("datasetMessage").textContent=error.message||"The workbook could not be read.";datasetFileInput.value="";}
+});
+
 const datasetPanel=document.getElementById("datasetPanel");
 if(key==="predictive-analytics") datasetPanel.hidden=false;
 document.getElementById("analyseDataset").addEventListener("click",async()=>{
  const input=document.getElementById("datasetFile"),status=document.getElementById("datasetMessage"),results=document.getElementById("datasetResults"),button=document.getElementById("analyseDataset");
  if(!signedIn){status.textContent="Sign in to your Client Account before analysing a dataset.";return;}
  if(!document.getElementById("privacyConsent").checked||!document.getElementById("aiConsent").checked){status.textContent="Please confirm the Privacy Notice and AI Workspace Use Policy first.";return;}
- if(!input.files||!input.files[0]){status.textContent="Choose a CSV file first.";return;}
+ if(!input.files||!input.files[0]){status.textContent="Choose a CSV or .xlsx Excel file first.";return;}
  button.disabled=true;button.textContent="Analysing…";status.textContent="Checking the CSV and calculating descriptive statistics…";results.hidden=true;
  try{
-  const body=new FormData();body.append("file",input.files[0]);
+  const body=new FormData();body.append("file",await prepareDatasetUpload(input.files[0]));body.append("sourceFileName",input.files[0].name);body.append("sourceSheetName",input.files[0].name.toLowerCase().endsWith(".xlsx")?document.getElementById("datasetSheet").value:"");
   const response=await fetch("/api/client/dataset-analysis",{method:"POST",credentials:"same-origin",body});
   const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||"Dataset analysis failed.");
   const a=data.analysis;results.replaceChildren();
