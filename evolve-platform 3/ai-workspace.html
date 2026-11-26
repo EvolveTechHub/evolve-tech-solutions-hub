@@ -283,6 +283,32 @@ function managementReportLines(){
   if(flagged.length)verifiedInterpretation.push("The statistical screening flagged "+flagged.length+" unusual period-and-metric observations. These flags identify values for verification; they do not identify causes or prove data errors.");
   if(highForecast.length)verifiedInterpretation.push("Forecasts for "+highForecast.map(m=>m.metric).join(" and ")+" have high validation error. Treat them as experimental and do not use them to guide operational decisions.");
   add("9. Supplementary data interpretation",verifiedInterpretation);
+ const periods=trend?.points||[],firstPeriod=periods[0]?.date,lastPeriod=periods[periods.length-1]?.date;
+ add("10. How to read the charts",[
+  a.chartData?"The category bar chart compares the uploaded-record totals for "+a.chartData.series.join(", ")+". Read the bar length as a total, not as profitability, efficiency or market share.":"A category bar chart was not produced because the dataset did not provide a suitable category and numeric measure.",
+  a.chartData?"The pie chart shows the contribution of each category to the selected measure's total within the uploaded file. It does not represent the organisation's entire business unless the uploaded file is known to be complete.":"A pie chart requires positive category totals and was not available for this dataset.",
+  trend?"The line chart connects date-grouped totals for "+trend.series[0]+". It helps readers see changes across "+trend.points.length+" "+trend.granularity+" periods, but a line does not explain why a value changed.":"A line chart requires a recognised date field and grouped numeric values.",
+  trend?.series?.length>=2?"The scatter plot compares "+trend.series[0]+" with "+trend.series[1]+" for matching periods. A pattern or cluster is descriptive and does not establish causation.":"A scatter plot requires at least two numeric measures recorded for matching periods.",
+  forecast?.metrics?.some(m=>m.status==="available")?"The forecast chart displays experimental estimates after the final uploaded period. Check the model name, validation error and indicative ranges before interpreting it.":"A forecast chart was not produced because the required consistent historical observations were unavailable."
+ ]);
+ add("11. Methodology, definitions and limitations",[
+  "The analysis was calculated from the uploaded CSV file. The raw file was processed in memory for this analysis; the report does not establish whether the uploaded records cover the entire organisation.",
+  "A row represents one record in the uploaded file. The meaning of a row, numeric measure, currency, unit or business event depends on the source system and was not assumed.",
+  "Numeric summaries include minimum, median, mean and maximum where a column could be interpreted as numeric. Category totals are sums of values in the uploaded records, not averages or conversion rates.",
+  "Missing-value and duplicate checks are structural checks only. Zero missing values or duplicates do not prove accuracy, completeness, representativeness or correct business definitions.",
+  trend?"The date-based analysis groups recognised dates by "+trend.granularity+". Date coverage in the uploaded time series runs from "+firstPeriod+" to "+lastPeriod+". Rows without a recognised date may be excluded from time-based summaries.":"No reliable date coverage could be established from the uploaded file.",
+  "Anomaly screening uses a statistical threshold to identify unusual observations relative to the dataset. Flags are prompts to verify source records, not evidence of mistakes, fraud, causes or business events.",
+  "Forecasting uses a simple baseline comparison and rolling validation. It does not model seasonality, promotions, market changes, external drivers or causal relationships. Indicative ranges are not formal prediction intervals.",
+  "A relationship between two measures, even when visible in a scatter plot, does not show that one measure causes the other. Matched customer journeys, costs, margins and other relevant business information may be needed for stronger conclusions."
+ ]);
+ const conclusion=[
+  "The uploaded data provides a useful starting point for understanding recorded activity, category totals and observed changes over time. Its conclusions are limited to the records, fields and dates supplied.",
+  a.chartData&&categoryPoints.length?("The category totals show "+categoryPoints.length+" recorded categories. The highest and lowest totals for each measure are listed in the supplementary interpretation; those rankings should be read alongside costs, margins, units, stock and coverage before decisions are made."):"The dataset does not support a reliable category comparison, so management should avoid drawing category-ranking conclusions.",
+  flagged.length?("The analysis identified "+flagged.length+" statistical flags for verification. These should be checked against the source records and reporting definitions before any explanation is accepted."):"The selected anomaly screening method did not flag unusual values, or did not have sufficient complete history to run.",
+  highForecast.length?("Forecast validation error is high for "+highForecast.map(m=>m.metric).join(", ")+". Those projections are not reliable enough to guide operational decisions."):"Any available forecast should still be treated as an experimental estimate and monitored against future actual results.",
+  "The most responsible next step is to validate the source data, agree clear metric definitions, extend the observation period and combine this analysis with relevant operational and financial context before approving changes."
+ ];
+ add("12. Management conclusion",conclusion);
  lines.push("","IMPORTANT: This report is an analytical aid, not an audit or guarantee. Verify findings against original records.");
  return lines;
 }
