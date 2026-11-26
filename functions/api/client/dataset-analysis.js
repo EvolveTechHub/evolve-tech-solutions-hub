@@ -338,7 +338,7 @@ export async function onRequestPost({ request, env }) {
         const counts = new Map();
         for (const v of nonempty) counts.set(v, (counts.get(v) || 0) + 1);
         const privateField = /(^|\b)(name|email|e-mail|phone|mobile|telephone|address|username|user\s*id|customer\s*id|client\s*id|student\s*id|employee\s*id|passport|national\s*id|account\s*number)(\b|$)/i.test(name);
-        const personalValue = value => /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(value) || /(?:\\+?\\d[\\d ().-]{7,}\\d)/.test(value);
+        const personalValue = value => /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(value) || /(?:\+?\d[\d ().-]{7,}\d)/.test(value);
         summary.privacySuppressed = privateField || nonempty.some(personalValue);
         summary.topValues = summary.privacySuppressed ? [] : [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([value, count]) => ({ value: value.slice(0, 120), count }));
       }
