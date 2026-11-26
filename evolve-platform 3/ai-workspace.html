@@ -459,6 +459,13 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
    results.append(canvas);
    const drawChart=()=>{const ctx=canvas.getContext("2d");if(!ctx)return;const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);const metric=Number(selector.value)||0;const max=Math.max(1,...chart.points.map(p=>p.values[metric]||0));const left=190,right=24,top=18,row=38,barMax=w-left-right-70;ctx.font="16px Arial";chart.points.forEach((p,i)=>{const y=top+i*row;const value=p.values[metric]||0;ctx.fillStyle="#244b5a";ctx.textAlign="right";ctx.fillText(p.label.slice(0,22),left-12,y+20);ctx.fillStyle="#dcefed";ctx.fillRect(left,y,barMax,22);ctx.fillStyle="#087f8c";ctx.fillRect(left,y,Math.max(1,barMax*value/max),22);ctx.fillStyle="#18394a";ctx.textAlign="left";ctx.fillText(String(Number(value.toFixed(2))),left+barMax+9,y+18)});};
    selector.addEventListener("change",drawChart);drawChart();
+
+   const pieTitle=document.createElement("h5");pieTitle.textContent="Category contribution · "+(chart.series[0]||"first measure");pieTitle.style.margin="18px 0 6px";results.append(pieTitle);
+   const pieNote=document.createElement("p");pieNote.className="smallprint";pieNote.textContent="Shows each category's share of the selected measure's total within the uploaded records. It is not a share of the organisation's entire business unless the upload is complete.";results.append(pieNote);
+   const pieCanvas=document.createElement("canvas");pieCanvas.width=760;pieCanvas.height=300;pieCanvas.style.cssText="width:100%;height:auto;display:block;background:#fff;border:1px solid #e4eeee;border-radius:12px";pieCanvas.setAttribute("role","img");pieCanvas.setAttribute("aria-label","Pie chart showing category contribution");results.append(pieCanvas);
+   const pieDraw=()=>{const ctx=pieCanvas.getContext("2d");if(!ctx)return;const vals=chart.points.map(p=>Math.max(0,Number(p.values[0])||0)),sum=vals.reduce((x,y)=>x+y,0),cx=165,cy=150,r=105;ctx.clearRect(0,0,760,300);if(!sum){ctx.fillStyle="#526b76";ctx.fillText("No positive totals available for a pie chart.",30,40);return;}let angle=-Math.PI/2;const colors=["#087f8c","#59b8b0","#9bcfc8","#244b5a","#a5b7bf","#e3b56d","#6c8fa0"];vals.forEach((v,i)=>{const next=angle+v/sum*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,angle,next);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();ctx.fillStyle="#fff";ctx.font="bold 12px Arial";ctx.fillText((v/sum*100).toFixed(1)+"%",cx+Math.cos((angle+next)/2)*r*.62-14,cy+Math.sin((angle+next)/2)*r*.62);angle=next;});ctx.font="14px Arial";chart.points.forEach((p,i)=>{const y=42+i*29;ctx.fillStyle=colors[i%colors.length];ctx.fillRect(330,y-12,14,14);ctx.fillStyle="#244b5a";ctx.fillText(p.label+" · "+vals[i].toLocaleString()+" ("+(vals[i]/sum*100).toFixed(1)+"%)",354,y);});};
+   pieDraw();
+
   } else {
    const noChart=document.createElement("p");noChart.className="smallprint";noChart.textContent="A category comparison chart could not be created automatically. Include a categorical column with a manageable number of values and at least one numeric column.";results.append(noChart);
   }
@@ -485,6 +492,16 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
     trend.points.forEach((point,i)=>{if(i%step===0||i===trend.points.length-1){const x=trend.points.length===1?left+plotW/2:left+(plotW*i/(trend.points.length-1));ctx.save();ctx.translate(x,h-18);ctx.rotate(-0.35);ctx.fillText(point.date,0,0);ctx.restore()}});
    };
    trendSelector.addEventListener("change",trendDraw);trendDraw();
+
+   if(trend.series.length>=2&&trend.points.length>=3){
+    const scatterTitle=document.createElement("h5");scatterTitle.textContent="Relationship view · "+trend.series[0]+" compared with "+trend.series[1];scatterTitle.style.margin="18px 0 6px";results.append(scatterTitle);
+    const scatterNote=document.createElement("p");scatterNote.className="smallprint";scatterNote.textContent="Each dot is one date or month in the uploaded dataset. A visible pattern is descriptive only; it does not prove that one measure causes or predicts the other.";results.append(scatterNote);
+    const scatterCanvas=document.createElement("canvas");scatterCanvas.width=760;scatterCanvas.height=340;scatterCanvas.style.cssText="width:100%;height:auto;display:block;background:#fff;border:1px solid #e4eeee;border-radius:12px";scatterCanvas.setAttribute("role","img");scatterCanvas.setAttribute("aria-label","Scatter plot comparing two numeric measures over matching periods");results.append(scatterCanvas);
+    const sx=trend.points.map(p=>Number(p.values[0])).filter(Number.isFinite),sy=trend.points.map(p=>Number(p.values[1])).filter(Number.isFinite);
+    const drawScatter=()=>{const ctx=scatterCanvas.getContext("2d");if(!ctx)return;const left=70,right=24,top=22,bottom=55,w=760-left-right,h=340-top-bottom,xs=trend.points.map(p=>Number(p.values[0])),ys=trend.points.map(p=>Number(p.values[1])),xmax=Math.max(1,...xs.filter(Number.isFinite)),ymax=Math.max(1,...ys.filter(Number.isFinite));ctx.clearRect(0,0,760,340);ctx.strokeStyle="#dce7e9";ctx.fillStyle="#526b76";ctx.font="12px Arial";for(let i=0;i<=4;i++){const y=top+h-i*h/4;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(760-right,y);ctx.stroke();ctx.textAlign="right";ctx.fillText((ymax*i/4).toFixed(1),left-8,y+4);}ctx.fillStyle="#087f8c";trend.points.forEach((p,i)=>{const x=Number(p.values[0]),y=Number(p.values[1]);if(!Number.isFinite(x)||!Number.isFinite(y))return;ctx.beginPath();ctx.arc(left+x/xmax*w,top+h-y/ymax*h,5,0,Math.PI*2);ctx.fill();});ctx.fillStyle="#244b5a";ctx.textAlign="center";ctx.fillText(trend.series[0],left+w/2,328);ctx.save();ctx.translate(16,top+h/2);ctx.rotate(-Math.PI/2);ctx.fillText(trend.series[1],0,0);ctx.restore();};
+    drawScatter();
+   }
+
    const trendTable=document.createElement("details");trendTable.style.marginTop="12px";
    const trendSummary=document.createElement("summary");trendSummary.textContent="View time-period totals";trendSummary.style.cursor="pointer";trendTable.append(trendSummary);
    const trendRows=document.createElement("table");trendRows.style.cssText="width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px";
@@ -591,8 +608,11 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
   const reportButton=document.createElement("button");reportButton.type="button";reportButton.className="secondary";reportButton.textContent="Download management report (PDF)";reportButton.addEventListener("click",()=>downloadManagementPdf());
   const workbookButton=document.createElement("button");workbookButton.type="button";workbookButton.className="secondary";workbookButton.textContent="Download Excel workbook";workbookButton.addEventListener("click",()=>downloadAnalyticsWorkbook());
   const htmlButton=document.createElement("button");htmlButton.type="button";htmlButton.className="secondary";htmlButton.textContent="Download detailed HTML report";htmlButton.addEventListener("click",()=>downloadNarrativeHtml());
+
+  const csvButton=document.createElement("button");csvButton.type="button";csvButton.className="secondary";csvButton.textContent="Download analysis summary (CSV)";csvButton.addEventListener("click",()=>{const rows=[["Section","Item","Value"]];for(const col of lastDatasetAnalysis.columnSummaries){rows.push(["KPI",col.name,JSON.stringify(col.numeric||{missing:col.missing,distinct:col.distinct,topValues:col.topValues})]);}for(const p of lastDatasetAnalysis.chartData?.points||[])rows.push(["Category",p.label,JSON.stringify({records:p.count,totals:p.values})]);for(const p of lastDatasetAnalysis.trendData?.points||[])rows.push(["Time series",p.date,JSON.stringify({records:p.count,totals:p.values})]);const csv=rows.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");exportDownload(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}),exportName("csv"));});
+
   const pptButton=document.createElement("button");pptButton.type="button";pptButton.className="secondary";pptButton.textContent="Download PowerPoint presentation";pptButton.addEventListener("click",()=>downloadAnalyticsPresentation());
-  insightWrap.append(insightButton,insightStatus,reportButton,workbookButton,pptButton,htmlButton);results.append(insightWrap);
+  insightWrap.append(insightButton,insightStatus,reportButton,workbookButton,pptButton,htmlButton,csvButton);results.append(insightWrap);
   const note=document.createElement("p");note.className="smallprint";note.textContent=data.notice;results.append(note);
   lastDatasetAnalysis=a;
   results.hidden=false;status.textContent="Dataset analysis completed. Review the summaries and column types before drawing conclusions.";
