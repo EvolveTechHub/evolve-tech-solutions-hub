@@ -686,7 +686,7 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
  if(!signedIn){status.textContent="Sign in to your Client Account before analysing a dataset.";return;}
  if(!document.getElementById("privacyConsent").checked||!document.getElementById("aiConsent").checked){status.textContent="Please confirm the Privacy Notice and AI Workspace Use Policy first.";return;}
  if(!input.files||!input.files[0]){status.textContent="Choose a CSV or .xlsx Excel file first.";return;}
- button.disabled=true;button.textContent="Analysing…";status.textContent="Checking the CSV and calculating descriptive statistics…";results.hidden=true;
+ button.disabled=true;button.textContent="Analysing…";status.textContent="Checking the selected dataset and calculating descriptive statistics…";results.hidden=true;
  try{
   const body=new FormData();body.append("file",await prepareDatasetUpload(input.files[0]));body.append("sourceFileName",input.files[0].name);body.append("sourceSheetName",input.files[0].name.toLowerCase().endsWith(".xlsx")?document.getElementById("datasetSheet").value:"");
   const response=await fetch("/api/client/dataset-analysis",{method:"POST",credentials:"same-origin",body});
@@ -715,7 +715,7 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
   const chart = a.chartData;
   if(chart && chart.points && chart.points.length){
    const totalsHeading=document.createElement("h4");totalsHeading.textContent=chart.category+" breakdown · totals from uploaded records";totalsHeading.style.margin="22px 0 8px";results.append(totalsHeading);
-   const totalsNote=document.createElement("p");totalsNote.className="smallprint";totalsNote.textContent="Each row shows the number of records and the sum of each numeric field for that category. These are calculated from the full uploaded CSV in memory.";results.append(totalsNote);
+   const totalsNote=document.createElement("p");totalsNote.className="smallprint";totalsNote.textContent="Each row shows the number of records and the sum of each numeric field for that category. These are calculated from the full selected worksheet or CSV in memory.";results.append(totalsNote);
    const totalsTable=document.createElement("table");totalsTable.style.cssText="width:100%;border-collapse:collapse;font-size:.82rem;display:block;overflow-x:auto";
    const totalsHead=document.createElement("tr");
    [chart.category,"Records",...chart.series].forEach(label=>{const th=document.createElement("th");th.textContent=label;th.style.cssText="text-align:left;padding:9px;border-bottom:1px solid #d5e5e5;white-space:nowrap";totalsHead.append(th)});
