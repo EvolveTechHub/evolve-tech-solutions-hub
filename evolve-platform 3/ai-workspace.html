@@ -223,7 +223,7 @@ function showResult(result,meta){
 }
 
 function reportText(value){return String(value??"").replace(/[^\x20-\x7E]/g," ").replace(/\s+/g," ").trim();}
-function wrapReportLine(value,max=92){
+function wrapReportLine(value,max=82){
  const words=reportText(value).split(" ");const lines=[];let line="";
  for(const word of words){if(!word)continue;if((line+" "+word).trim().length>max){if(line)lines.push(line);line=word;}else line=(line+" "+word).trim();}
  if(line)lines.push(line);return lines;
@@ -237,14 +237,21 @@ function managementReportLines(){
   const lines=[];const add=(heading,items=[])=>{lines.push("",heading.toUpperCase());for(const item of items){lines.push("");for(const wrapped of wrapReportLine(item))lines.push(wrapped);}};
  lines.push("Prepared for: "+reportBrand(),"Generated: "+new Date().toLocaleString(),"");
  add("1. Executive summary",[
-  "This report summarises "+a.rows+" uploaded data rows across "+a.columnSummaries.length+" columns.",
-  "The analysis detected "+a.duplicateRows+" duplicate rows. Column-level missing values and category totals are summarised below.",
-  "Findings describe only the uploaded dataset. Confirm source coverage and definitions before making operational decisions."
+  "This report examines "+a.rows+" uploaded records across "+a.columnSummaries.length+" fields. It combines structural data-quality checks, descriptive statistics, category comparisons and date-based analysis where the uploaded fields support them.",
+  "The analysis detected "+a.duplicateRows+" duplicate rows. "+a.columnSummaries.filter(c=>c.missing>0).length+" of "+a.columnSummaries.length+" columns contain missing values. The detailed sections explain the scale and implications of each finding.",
+  "The report distinguishes observed facts from interpretations and experimental forecasts. All findings describe the uploaded dataset only; they should not be treated as proof of organisation-wide performance unless source coverage is independently confirmed.",
+  "Management should use this report as a decision-support document: validate source records, confirm metric definitions and combine the findings with operational, financial and market context before approving material changes."
  ]);
- add("2. Key performance indicators",a.columnSummaries.map(c=>{
-  if(c.numeric)return c.name+": minimum "+c.numeric.min+", median "+c.numeric.median+", mean "+c.numeric.mean+", maximum "+c.numeric.max+", missing "+c.missing+".";
-  return c.name+": "+c.distinct+" distinct values, missing "+c.missing+". Frequent values: "+(c.topValues||[]).map(v=>v.value+" ("+v.count+")").join(", ")+".";
- }).concat(["Total records: "+a.rows+". Duplicate rows: "+a.duplicateRows+"."]));
+ add("2. Dataset profile and key performance indicators",[
+  "Dataset size: "+a.rows+" records and "+a.columnSummaries.length+" columns. Duplicate rows detected: "+a.duplicateRows+".",
+  "Numeric columns: "+a.columnSummaries.filter(c=>c.numeric).length+". Categorical or text columns: "+a.columnSummaries.filter(c=>!c.numeric).length+".",
+  "The column-level summaries below report valid numeric counts, minimums, medians, means, maximums, missing values and distinct values where those statistics are meaningful.",
+  ...a.columnSummaries.map(c=>{
+   const missingRate=a.rows?((c.missing/a.rows)*100).toFixed(1):"0.0";
+   if(c.numeric)return c.name+" (numeric): "+c.numeric.count+" valid values; minimum "+c.numeric.min+", median "+c.numeric.median+", mean "+c.numeric.mean+", maximum "+c.numeric.max+"; "+c.missing+" missing ("+missingRate+"%); "+c.distinct+" distinct values.";
+   return c.name+" (categorical/text): "+c.distinct+" distinct values; "+c.missing+" missing ("+missingRate+"%). Most frequent recorded values: "+(c.topValues||[]).map(v=>v.value+" ("+v.count+" records)").join(", ")+".";
+  })
+ ]);
  if(a.chartData)add("3. Product or category performance",[
   "Category field: "+a.chartData.category+". Totals below are calculated only from records included in the uploaded file.",
   "Measures: "+a.chartData.series.join(", "),
@@ -407,11 +414,14 @@ function downloadAnalyticsPresentation(){
  entries["ppt/slideLayouts/slideLayout1.xml"]='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sldLayout xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" type="blank" preserve="1"><p:cSld name="Blank"><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr></p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>';
  entries["ppt/slideLayouts/_rels/slideLayout1.xml.rels"]='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>';
  entries["ppt/theme/theme1.xml"]='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Evolve"><a:themeElements><a:clrScheme name="Evolve"><a:dk1><a:srgbClr val="102B3B"/></a:dk1><a:lt1><a:srgbClr val="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="18394A"/></a:dk2><a:lt2><a:srgbClr val="F4F8FA"/></a:lt2><a:accent1><a:srgbClr val="087F8C"/></a:accent1><a:accent2><a:srgbClr val="8CE8E1"/></a:accent2><a:accent3><a:srgbClr val="244B5A"/></a:accent3><a:accent4><a:srgbClr val="647783"/></a:accent4><a:accent5><a:srgbClr val="A5B7BF"/></a:accent5><a:accent6><a:srgbClr val="DCEFED"/></a:accent6><a:hlink><a:srgbClr val="0563C1"/></a:hlink><a:folHlink><a:srgbClr val="954F72"/></a:folHlink></a:clrScheme><a:fontScheme name="Aptos"><a:majorFont><a:latin typeface="Aptos Display"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Aptos"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme><a:fmtScheme name="Evolve"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"/></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"/></a:gs></a:gsLst><a:lin ang="0" scaled="1"/></a:gradFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w="6350"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="12700"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln><a:ln w="19050"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"/></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"/></a:gs></a:gsLst><a:lin ang="0" scaled="1"/></a:gradFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>';
- const textShape=(id,y,text,title)=>'<p:sp><p:nvSpPr><p:cNvPr id="'+id+'" name="Text '+id+'"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="650000" y="'+y+'"/><a:ext cx="11000000" cy="'+(title?900000:720000)+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></p:spPr><p:txBody><a:bodyPr wrap="square" lIns="0" rIns="0" tIns="0" bIns="0"/><a:lstStyle/><a:p><a:pPr/><a:r><a:rPr lang="en-US" sz="'+(title?2800:1600)+'" b="'+(title?1:0)+'"><a:solidFill><a:srgbClr val="'+(title?"073847":"243E49")+'"/></a:solidFill><a:latin typeface="Aptos"/></a:rPr><a:t>'+esc(String(text).slice(0,420))+'</a:t></a:r><a:endParaRPr lang="en-US"/></a:p></p:txBody></p:sp>';
+ const textShape=(id,y,text,title)=>'<p:sp><p:nvSpPr><p:cNvPr id="'+id+'" name="Text '+id+'"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="650000" y="'+y+'"/><a:ext cx="11000000" cy="'+(title?1050000:850000)+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></p:spPr><p:txBody><a:bodyPr wrap="square" lIns="0" rIns="0" tIns="0" bIns="0"/><a:lstStyle/><a:p><a:pPr/><a:r><a:rPr lang="en-US" sz="'+(title?3200:1800)+'" b="'+(title?1:0)+'"><a:solidFill><a:srgbClr val="'+(title?"FFFFFF":"243E49")+'"/></a:solidFill><a:latin typeface="Aptos"/></a:rPr><a:t>'+esc(String(text).slice(0,300))+'</a:t></a:r><a:endParaRPr lang="en-US"/></a:p></p:txBody></p:sp>';
  slides.forEach((s,i)=>{
-  let shapes=textShape(2,420000,s.title,true),y=1500000,id=3;
-  for(const item of s.items.slice(0,6)){shapes+=textShape(id++,y,"• "+item,false);y+=650000;}
+  const bg='<p:sp><p:nvSpPr><p:cNvPr id="90" name="Slide background"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="12192000" cy="6858000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="'+(i===0?"071C2D":"FFFFFF")+'"/></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr></p:sp>';
+  const band='<p:sp><p:nvSpPr><p:cNvPr id="91" name="Evolve header band"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="12192000" cy="1150000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="'+(i===0?"0A4052":"071C2D")+'"/></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr></p:sp>';
+  let shapes=bg+band+textShape(2,330000,s.title,true),y=1500000,id=3;
+  for(const item of s.items.slice(0,5)){shapes+=textShape(id++,y,"• "+item,false);y+=930000;}
   if(s.chart){const max=Math.max(1,...s.chart.map(p=>p.value));s.chart.slice(0,7).forEach(p=>{const w=Math.max(250000,Math.round(4200000*Math.max(0,p.value)/max));shapes+=textShape(id++,y,p.label+" · "+p.value,false);y+=220000;shapes+='<p:sp><p:nvSpPr><p:cNvPr id="'+id+'" name="Category bar"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="650000" y="'+y+'"/><a:ext cx="'+w+'" cy="180000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="087F8C"/></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr></p:sp>';id++;y+=310000;});}
+  shapes+=textShape(id++,6420000,"EVOLVE TECHNOLOGY SOLUTIONS HUB  ·  CONFIDENTIAL  ·  "+(i+1)+" / "+slides.length,false);
   const tree='<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>';
   entries["ppt/slides/slide"+(i+1)+".xml"]='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"><p:cSld><p:spTree>'+tree+shapes+'</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>';
   entries["ppt/slides/_rels/slide"+(i+1)+".xml.rels"]='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/></Relationships>';
@@ -458,12 +468,14 @@ function downloadManagementPdf(){
   const weight=line=>line===""?0.6:isHeading([line])?2:1;const pages=[[]];let pageWeight=0;for(let blockIndex=0;blockIndex<blocks.length;blockIndex++){let remaining=[...blocks[blockIndex],...(blockIndex<blocks.length-1?[""]:[])];while(remaining.length){const room=38-pageWeight;const cost=remaining.reduce((sum,line)=>sum+weight(line),0);if(cost<=room){pages[pages.length-1].push(...remaining);pageWeight+=cost;remaining=[];}else if(pageWeight>0){pages.push([]);pageWeight=0;}else{let take=0,used=0;while(take<remaining.length&&used+weight(remaining[take])<=38){used+=weight(remaining[take]);take++;}if(!take)take=1;pages[pages.length-1].push(...remaining.splice(0,take));pageWeight=used;if(remaining.length){pages.push([]);pageWeight=0;}}}}
 
  const chartAnalysis=lastDatasetAnalysis;
+ pages.unshift(["@@COVER_FRONT@@"]);
  if(chartAnalysis?.chartData?.points?.length)pages.push(["@@CHART_CATEGORY_BAR@@"]);
  if(chartAnalysis?.chartData?.points?.length&&chartAnalysis.chartData.points.some(p=>Number(p.values?.[0])>0))pages.push(["@@CHART_CATEGORY_PIE@@"]);
  if(chartAnalysis?.trendData?.points?.length>1)pages.push(["@@CHART_TIME_LINE@@"]);
  if(chartAnalysis?.trendData?.series?.length>=2&&chartAnalysis.trendData.points.length>=3)pages.push(["@@CHART_SCATTER@@"]);
  if(chartAnalysis?.trendData?.points?.length>=8){pages.push(["@@CHART_HISTOGRAM@@"]);pages.push(["@@CHART_BOXPLOT@@"]);}
  if(chartAnalysis?.forecastData?.metrics?.some(m=>m.status==="available"&&m.forecasts?.length))pages.push(["@@CHART_FORECAST@@"]);
+ pages.push(["@@COVER_BACK@@"]);
 
  const enc=new TextEncoder(),objects=[];const addText=value=>{objects.push(enc.encode(value));return objects.length;};
  const catalogId=addText(""),pagesId=addText(""),fontId=addText("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"),boldFontId=addText("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
@@ -480,7 +492,27 @@ function downloadManagementPdf(){
    stream+=op("ANALYTICS MANAGEMENT REPORT",imageId?105:48,744,8,"F1","0.88 0.94 0.95");
 
    const chartMarker=pages[p].length===1?pages[p][0]:"";
-   if(chartMarker){
+   if(chartMarker==="@@COVER_FRONT@@"){
+    stream="0.025 0.11 0.17 rg\n0 0 612 792 re f\n0.03 0.50 0.55 rg\n0 0 612 12 re f\n0.08 0.25 0.31 rg\n420 0 192 792 re f\n";
+    if(imageId){const scale=Math.min(120/imageDims.width,120/imageDims.height),w=imageDims.width*scale,h=imageDims.height*scale;stream+="q\n"+w+" 0 0 "+h+" 48 620 cm\n/Im1 Do\nQ\n";}
+    stream+=op("EVOLVE TECHNOLOGY SOLUTIONS HUB",48,570,12,"F2","0.55 0.91 0.88");
+    stream+=op("ANALYTICS MANAGEMENT REPORT",48,475,25,"F2","1 1 1");
+    stream+=op("A detailed review of the uploaded dataset",48,440,12,"F1","0.86 0.93 0.94");
+    stream+=op("PREPARED FOR",48,330,9,"F2","0.55 0.91 0.88");
+    stream+=op(reportBrand(),48,305,19,"F2","1 1 1");
+    stream+=op("Generated: "+new Date().toLocaleDateString(),48,270,10,"F1","0.86 0.93 0.94");
+    stream+=op("CONFIDENTIAL · FOR THE INTENDED RECIPIENT",48,105,9,"F2","0.86 0.93 0.94");
+   }else if(chartMarker==="@@COVER_BACK@@"){
+    stream="0.025 0.11 0.17 rg\n0 0 612 792 re f\n0.03 0.50 0.55 rg\n0 780 612 12 re f\n";
+    stream+=op("EVOLVE",48,650,28,"F2","1 1 1");
+    stream+=op("TECHNOLOGY SOLUTIONS HUB",48,620,11,"F2","0.55 0.91 0.88");
+    stream+=op("Thank you for using Evolve.",48,500,21,"F2","1 1 1");
+    stream+=op("Turning data into clearer decisions.",48,465,12,"F1","0.86 0.93 0.94");
+    stream+=op("Contact: evolvetechhub.sol@gmail.com",48,330,10,"F1","0.86 0.93 0.94");
+    stream+=op("Website: evolvetechhub.com",48,305,10,"F1","0.86 0.93 0.94");
+    stream+=op("This report is an analytical aid, not an audit, assurance opinion or guarantee.",48,145,9,"F1","0.86 0.93 0.94");
+    stream+=op("Verify material findings against original records before acting.",48,125,9,"F1","0.86 0.93 0.94");
+   }else if(chartMarker){
     const a=chartAnalysis;stream+=op(chartMarker==="@@CHART_CATEGORY_BAR@@"?"Category comparison":chartMarker==="@@CHART_CATEGORY_PIE@@"?"Category contribution":chartMarker==="@@CHART_TIME_LINE@@"?"Performance over time":chartMarker==="@@CHART_SCATTER@@"?"Relationship between measures":chartMarker==="@@CHART_HISTOGRAM@@"?"Distribution of observed values":chartMarker==="@@CHART_BOXPLOT@@"?"Spread and range of observed values":"Experimental forecast view",48,690,18,"F2","0.035 0.20 0.24");
     stream+=op("Charts describe only the uploaded dataset; they do not establish causes or business-wide representativeness.",48,666,8,"F1","0.30 0.38 0.40");
     if(chartMarker==="@@CHART_CATEGORY_BAR@@"){
@@ -527,8 +559,8 @@ function downloadManagementPdf(){
 
     if(!line){y-=8;continue;}
     const heading=/^(?:[1-9]|1[0-2])\. /.test(line)||/^#{1,6}\\s/.test(line)||line==="AI-GENERATED BUSINESS INSIGHTS";
-    if(heading){stream+="0.91 0.96 0.96 rg\n42 "+(y-7)+" 528 22 re f\n";stream+=op(line.replace(/^#{1,6}\\s*/, ""),50,y,10,"F2","0.035 0.20 0.24");y-=27;}
-    else{stream+=op(line,50,y,8.5,"F1","0.12 0.18 0.20");y-=14;}
+    if(heading){stream+="0.91 0.96 0.96 rg\n42 "+(y-9)+" 528 27 re f\n";stream+=op(line.replace(/^#{1,6}\\s*/, ""),50,y,12,"F2","0.035 0.20 0.24");y-=32;}
+    else{stream+=op(line,50,y,10,"F1","0.12 0.18 0.20");y-=17;}
    }
    }
    stream+="0.10 0.35 0.39 rg\n42 43 528 1 re f\n";
