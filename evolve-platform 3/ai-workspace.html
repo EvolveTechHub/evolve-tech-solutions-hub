@@ -429,8 +429,7 @@ function downloadAnalyticsPresentation(){
 
 function downloadAnalyticsRtf(){
  const lines=managementReportLines();if(!lines.length)return;
- const esc=v=>String(v??'').replace(/\\/g,'\\\\').replace(/[{}]/g,'\\
-function downloadNarrativeHtml(){').replace(/[^\\x20-\\x7E]/g,' ');
+ const esc=v=>String(v??'').replace(/\\/g,'\\\\').replace(/[{}]/g,'\\$&').replace(/[^\x20-\x7E]/g,' ');
  const body=lines.map(line=>{if(!line.trim())return '\\par ';const heading=/^(?:[1-9]|1[0-2])\\.\\s/.test(line);return (heading?'\\par\\sb240\\sa100\\b\\fs28 ':'\\par\\sa100\\fs22 ')+esc(line)+(heading?'\\b0':'')+' ';}).join('');
  const rtf='{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Aptos;}}\\viewkind4\\uc1\\f0\\fs22 '+esc('ANALYTICS MANAGEMENT REPORT')+'\\par\\par '+esc('Prepared for: '+reportBrand())+'\\par '+body+'\\par\\par\\fs18 '+esc('This report describes the uploaded dataset only. Verify findings against original records.')+'}';
  exportDownload(new Blob([rtf],{type:'application/rtf'}),exportName('rtf'));
