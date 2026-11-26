@@ -406,6 +406,7 @@ function downloadManagementPdf(){
  if(chartAnalysis?.chartData?.points?.length&&chartAnalysis.chartData.points.some(p=>Number(p.values?.[0])>0))pages.push(["@@CHART_CATEGORY_PIE@@"]);
  if(chartAnalysis?.trendData?.points?.length>1)pages.push(["@@CHART_TIME_LINE@@"]);
  if(chartAnalysis?.trendData?.series?.length>=2&&chartAnalysis.trendData.points.length>=3)pages.push(["@@CHART_SCATTER@@"]);
+ if(chartAnalysis?.trendData?.points?.length>=8)pages.push(["@@CHART_HISTOGRAM@@","@@CHART_BOXPLOT@@"]);
  if(chartAnalysis?.forecastData?.metrics?.some(m=>m.status==="available"&&m.forecasts?.length))pages.push(["@@CHART_FORECAST@@"]);
 
  const enc=new TextEncoder(),objects=[];const addText=value=>{objects.push(enc.encode(value));return objects.length;};
@@ -424,7 +425,7 @@ function downloadManagementPdf(){
 
    const chartMarker=pages[p].length===1?pages[p][0]:"";
    if(chartMarker){
-    const a=chartAnalysis;stream+=op(chartMarker==="@@CHART_CATEGORY_BAR@@"?"Category comparison":chartMarker==="@@CHART_CATEGORY_PIE@@"?"Category contribution":chartMarker==="@@CHART_TIME_LINE@@"?"Performance over time":chartMarker==="@@CHART_SCATTER@@"?"Relationship between measures":"Experimental forecast view",48,690,18,"F2","0.035 0.20 0.24");
+    const a=chartAnalysis;stream+=op(chartMarker==="@@CHART_CATEGORY_BAR@@"?"Category comparison":chartMarker==="@@CHART_CATEGORY_PIE@@"?"Category contribution":chartMarker==="@@CHART_TIME_LINE@@"?"Performance over time":chartMarker==="@@CHART_SCATTER@@"?"Relationship between measures":chartMarker==="@@CHART_HISTOGRAM@@"?"Distribution of observed values":chartMarker==="@@CHART_BOXPLOT@@"?"Spread and range of observed values":"Experimental forecast view",48,690,18,"F2","0.035 0.20 0.24");
     stream+=op("Charts describe only the uploaded dataset; they do not establish causes or business-wide representativeness.",48,666,8,"F1","0.30 0.38 0.40");
     if(chartMarker==="@@CHART_CATEGORY_BAR@@"){
      const data=a.chartData,idx=0,vals=data.points.map(p=>Number(p.values?.[idx])||0),max=Math.max(1,...vals),left=155,barMax=330;
@@ -448,6 +449,17 @@ function downloadManagementPdf(){
      stream+="0.75 0.82 0.84 RG\n1 w\n"+left+" "+bottom+" m "+right+" "+bottom+" l "+left+" "+top+" l S\n";
      data.points.forEach(p=>{const x=Number(p.values?.[0]),y=Number(p.values?.[1]);if(!Number.isFinite(x)||!Number.isFinite(y))return;const px=left+(right-left)*x/xmax,py=bottom-(bottom-top)*y/ymax;stream+="0.03 0.50 0.55 rg\n"+(px-4)+" "+(py-4)+" 8 8 re f\n";});
      stream+=op("Horizontal: "+data.series[0]+" · Vertical: "+data.series[1],48,170,9,"F1","0.30 0.38 0.40");
+    }else if(chartMarker==="@@CHART_HISTOGRAM@@"){
+     const data=a.trendData,vals=data.points.map(p=>Number(p.values?.[0])).filter(Number.isFinite),min=Math.min(...vals),max=Math.max(...vals),bins=6,counts=Array(bins).fill(0),span=max-min||1;
+     vals.forEach(v=>counts[Math.min(bins-1,Math.floor((v-min)/span*bins))]++);
+     const peak=Math.max(1,...counts);counts.forEach((count,i)=>{const y=570-i*58,w=350*count/peak;stream+=op((min+span*i/bins).toFixed(1)+" – "+(min+span*(i+1)/bins).toFixed(1),48,y+7,8,"F1","0.12 0.18 0.20");stream+="0.88 0.94 0.94 rg\n155 "+y+" 350 22 re f\n0.03 0.50 0.55 rg\n155 "+y+" "+Math.max(1,w)+" 22 re f\n";stream+=op(String(count),515,y+7,8,"F1","0.12 0.18 0.20");});
+     stream+=op("Distribution of "+data.series[0]+" across "+vals.length+" recorded periods. Histogram bins show frequency, not a forecast.",48,170,9,"F1","0.30 0.38 0.40");
+    }else if(chartMarker==="@@CHART_BOXPLOT@@"){
+     const data=a.trendData,vals=data.points.map(p=>Number(p.values?.[0])).filter(Number.isFinite).sort((x,y)=>x-y),q=p=>{const pos=(vals.length-1)*p,lo=Math.floor(pos),hi=Math.ceil(pos);return vals[lo]+(vals[hi]-vals[lo])*(pos-lo);},min=vals[0],max=vals[vals.length-1],q1=q(.25),med=q(.5),q3=q(.75),lo=80,hi=540,scale=v=>lo+(hi-lo)*(v-min)/(max-min||1),y=410;
+     stream+="0.75 0.82 0.84 RG\n2 w\n"+scale(min)+" "+y+" m "+scale(max)+" "+y+" l S\n"+scale(min)+" "+(y-22)+" m "+scale(min)+" "+(y+22)+" l S\n"+scale(max)+" "+(y-22)+" m "+scale(max)+" "+(y+22)+" l S\n";
+     stream+="0.88 0.94 0.94 rg\n"+scale(q1)+" "+(y-45)+" "+Math.max(2,scale(q3)-scale(q1))+" 90 re f\n0.03 0.50 0.55 RG\n2 w\n"+scale(med)+" "+(y-45)+" m "+scale(med)+" "+(y+45)+" l S\n";
+     stream+=op("Minimum: "+min+" · Q1: "+q1.toFixed(2)+" · Median: "+med.toFixed(2)+" · Q3: "+q3.toFixed(2)+" · Maximum: "+max,48,300,9,"F1","0.30 0.38 0.40");
+     stream+=op("This box plot summarises the spread of "+data.series[0]+" across "+vals.length+" recorded periods. It does not identify causes.",48,270,9,"F1","0.30 0.38 0.40");
     }else{
      const metrics=a.forecastData.metrics.filter(m=>m.status==="available"&&m.forecasts?.length);
      metrics.slice(0,2).forEach((m,mi)=>{const y=580-mi*190;stream+=op(m.metric+" · "+m.model+" · "+m.quality,48,y+25,10,"F2","0.12 0.18 0.20");const vals=m.forecasts.map(p=>Number(p.estimate)||0),max=Math.max(1,...vals);vals.forEach((v,i)=>{const x=90+i*145;stream+="0.88 0.94 0.94 rg\n"+x+" "+(y-20)+" 90 18 re f\n0.03 0.50 0.55 rg\n"+x+" "+(y-20)+" "+Math.max(1,90*v/max)+" 18 re f\n";stream+=op(m.forecasts[i].period+" · "+v, x,y-37,8,"F1","0.12 0.18 0.20");});});
