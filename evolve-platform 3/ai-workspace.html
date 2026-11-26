@@ -239,7 +239,7 @@ function managementReportLines(){
  lines.push("Prepared for: "+reportBrand(),"Generated: "+new Date().toLocaleString(),"");
  add("1. Executive summary",[
   "This report examines "+a.rows+" uploaded records across "+a.columnSummaries.length+" fields. It combines structural data-quality checks, descriptive statistics, category comparisons and date-based analysis where the uploaded fields support them.",
-  "The analysis detected "+a.duplicateRows+" duplicate rows. "+a.columnSummaries.filter(c=>c.missing>0).length+" of "+a.columnSummaries.length+" columns contain missing values. The detailed sections explain the scale and implications of each finding.",
+  "The analysis detected "+a.duplicateRows+" duplicate rows. "+a.columnSummaries.filter(c=>c.missing>0).length+" of "+a.columnSummaries.length+" columns contain missing values. "+(a.qualityFlags?.repeatedHeaderRows? a.qualityFlags.repeatedHeaderRows+" rows match the column headings and should be checked as possible repeated headers.":"No rows exactly matching all column headings were detected.")+" The detailed sections explain the scale and implications of each finding.",
   "The report distinguishes observed facts from interpretations and experimental forecasts. All findings describe the uploaded dataset only; they should not be treated as proof of organisation-wide performance unless source coverage is independently confirmed.",
   "Management should use this report as a decision-support document: validate source records, confirm metric definitions and combine the findings with operational, financial and market context before approving material changes."
  ]);
@@ -250,7 +250,7 @@ function managementReportLines(){
   ...a.columnSummaries.map(c=>{
    const missingRate=a.rows?((c.missing/a.rows)*100).toFixed(1):"0.0";
    if(c.numeric)return c.name+" (numeric): "+c.numeric.count+" valid values; minimum "+c.numeric.min+", median "+c.numeric.median+", mean "+c.numeric.mean+", maximum "+c.numeric.max+"; "+c.missing+" missing ("+missingRate+"%); "+c.distinct+" distinct values.";
-   return c.name+" (categorical/text): "+c.distinct+" distinct values; "+c.missing+" missing ("+missingRate+"%). Most frequent recorded values: "+(c.topValues||[]).map(v=>v.value+" ("+v.count+" records)").join(", ")+".";
+   return c.name+" (categorical/text): "+c.distinct+" distinct values; "+c.missing+" missing ("+missingRate+"%). "+(c.privacySuppressed?"Most frequent values suppressed because this field may contain personal or identifying information.":("Most frequent recorded values: "+(c.topValues||[]).map(v=>v.value+" ("+v.count+" records)").join(", ")+"."));
   })
  ]);
  if(a.chartData)add("3. Product or category performance",[
@@ -279,6 +279,8 @@ function managementReportLines(){
  add("6. Business risks and opportunities",[
   qualityIssues.length?"Data completeness risk: missing values were detected in "+qualityIssues.map(c=>c.name).join(", ")+".":"No missing values were reported in the analysed columns. These checks describe only the uploaded file; they do not establish that the data is representative or complete for the business.",
   a.duplicateRows?"Duplicate-record risk: "+a.duplicateRows+" duplicate rows were detected and should be reviewed.":"No duplicate rows were detected.",
+  a.qualityFlags?.repeatedHeaderRows?"Possible repeated-header risk: "+a.qualityFlags.repeatedHeaderRows+" data rows exactly match all column headings. Review these rows against the source workbook before treating them as genuine records.":"No exact repeated-header rows were detected.",
+  a.columnSummaries.some(c=>c.privacySuppressed)?"Privacy protection: frequent values were suppressed for "+a.columnSummaries.filter(c=>c.privacySuppressed).map(c=>c.name).join(", ")+" because the fields may contain personal or identifying information.":"No columns were flagged for automatic privacy suppression; review the source before sharing the report.",
   highForecast.length?"Forecast risk: high validation error affects "+highForecast.map(m=>m.metric).join(" and ")+". These projections should not guide operational decisions.":"Review validation metrics before using any forecast.",
   a.chartData?"Opportunity: category-level totals provide a basis for further investigation, within the coverage of the uploaded records.":"Opportunity: include a suitable categorical field to enable comparison.",
   "Statistical anomaly flags indicate unusual values, not proven errors, causes or business events."
