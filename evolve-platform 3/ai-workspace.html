@@ -376,7 +376,7 @@ function downloadAnalyticsPresentation(){
  const sections=[];let section={title:"Executive overview",items:[]};
  for(const line of managementReportLines()){if(/^(?:[1-9]|1[0-2])\.\s/.test(line)){if(section.items.length)sections.push(section);section={title:line,items:[]};}else if(line.trim())section.items.push(line);}
  if(section.items.length)sections.push(section);
- const slides=[{title:"Analytics Management Report",items:["Prepared for: "+reportBrand(),"Generated: "+new Date().toLocaleString(),"Analysis of "+a.rows+" uploaded records across "+a.columnSummaries.length+" columns."]},...sections.slice(0,8)];
+ const slides=[{title:"Analytics Management Report",items:["Prepared for: "+reportBrand(),"Generated: "+new Date().toLocaleString(),"Analysis of "+a.rows+" uploaded records across "+a.columnSummaries.length+" columns."]},...sections.slice(0,12)];
  if(a.chartData?.points?.length)slides.push({title:"Category comparison · "+a.chartData.series[0],items:["Totals from the uploaded records only. These values are not automatically revenue, profit or market share."],chart:a.chartData.points.map(p=>({label:p.label,value:Number(p.values?.[0])||0}))});
  const files={};
  const esc=exportXmlEscape;
