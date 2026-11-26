@@ -371,6 +371,14 @@ function downloadManagementPdf(){
    const isHeading=part=>part.length===1&&(/^[1-9]\.\s/.test(part[0])||/^#{1,6}\s/.test(part[0])||part[0]==="AI-GENERATED BUSINESS INSIGHTS");
    const blocks=[];for(let i=0;i<paragraphs.length;i++){if(isHeading(paragraphs[i])){const group=[...paragraphs[i]];let j=i+1;while(j<paragraphs.length&&isHeading(paragraphs[j])){group.push(...paragraphs[j]);j++;}if(j<paragraphs.length){group.push(...paragraphs[j]);j++;}blocks.push(group);i=j-1;}else blocks.push(paragraphs[i]);}
   const weight=line=>line===""?0.6:isHeading([line])?2:1;const pages=[[]];let pageWeight=0;for(let blockIndex=0;blockIndex<blocks.length;blockIndex++){let remaining=[...blocks[blockIndex],...(blockIndex<blocks.length-1?[""]:[])];while(remaining.length){const room=38-pageWeight;const cost=remaining.reduce((sum,line)=>sum+weight(line),0);if(cost<=room){pages[pages.length-1].push(...remaining);pageWeight+=cost;remaining=[];}else if(pageWeight>0){pages.push([]);pageWeight=0;}else{let take=0,used=0;while(take<remaining.length&&used+weight(remaining[take])<=38){used+=weight(remaining[take]);take++;}if(!take)take=1;pages[pages.length-1].push(...remaining.splice(0,take));pageWeight=used;if(remaining.length){pages.push([]);pageWeight=0;}}}}
+
+ const chartAnalysis=lastDatasetAnalysis;
+ if(chartAnalysis?.chartData?.points?.length)pages.push(["@@CHART_CATEGORY_BAR@@"]);
+ if(chartAnalysis?.chartData?.points?.length&&chartAnalysis.chartData.points.some(p=>Number(p.values?.[0])>0))pages.push(["@@CHART_CATEGORY_PIE@@"]);
+ if(chartAnalysis?.trendData?.points?.length>1)pages.push(["@@CHART_TIME_LINE@@"]);
+ if(chartAnalysis?.trendData?.series?.length>=2&&chartAnalysis.trendData.points.length>=3)pages.push(["@@CHART_SCATTER@@"]);
+ if(chartAnalysis?.forecastData?.metrics?.some(m=>m.status==="available"&&m.forecasts?.length))pages.push(["@@CHART_FORECAST@@"]);
+
  const enc=new TextEncoder(),objects=[];const addText=value=>{objects.push(enc.encode(value));return objects.length;};
  const catalogId=addText(""),pagesId=addText(""),fontId=addText("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"),boldFontId=addText("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
  const logo=document.getElementById("reportLogo")?.files?.[0];
@@ -384,12 +392,47 @@ function downloadManagementPdf(){
    if(imageId){const scale=Math.min(44/imageDims.width,44/imageDims.height),w=imageDims.width*scale,h=imageDims.height*scale;stream+="q\n"+w+" 0 0 "+h+" 48 "+(736+(44-h)/2)+" cm\n/Im1 Do\nQ\n";}
    stream+=op(reportBrand(),imageId?105:48,763,13,"F2","1 1 1");
    stream+=op("ANALYTICS MANAGEMENT REPORT",imageId?105:48,744,8,"F1","0.88 0.94 0.95");
+
+   const chartMarker=pages[p].length===1?pages[p][0]:"";
+   if(chartMarker){
+    const a=chartAnalysis;stream+=op(chartMarker==="@@CHART_CATEGORY_BAR@@"?"Category comparison":chartMarker==="@@CHART_CATEGORY_PIE@@"?"Category contribution":chartMarker==="@@CHART_TIME_LINE@@"?"Performance over time":chartMarker==="@@CHART_SCATTER@@"?"Relationship between measures":"Experimental forecast view",48,690,18,"F2","0.035 0.20 0.24");
+    stream+=op("Charts describe only the uploaded dataset; they do not establish causes or business-wide representativeness.",48,666,8,"F1","0.30 0.38 0.40");
+    if(chartMarker==="@@CHART_CATEGORY_BAR@@"){
+     const data=a.chartData,idx=0,vals=data.points.map(p=>Number(p.values?.[idx])||0),max=Math.max(1,...vals),left=155,barMax=330;
+     data.points.forEach((point,i)=>{const y=600-i*48,v=vals[i];stream+=op(point.label,48,y+7,9,"F1","0.12 0.18 0.20");stream+="0.88 0.94 0.94 rg\n"+left+" "+y+" "+barMax+" 22 re f\n0.03 0.50 0.55 rg\n"+left+" "+y+" "+Math.max(1,barMax*v/max)+" 22 re f\n";stream+=op(String(v),left+barMax+10,y+7,8,"F1","0.12 0.18 0.20");});
+     stream+=op("Measure: "+data.series[0]+" · Category: "+data.category,48,145,9,"F1","0.30 0.38 0.40");
+    }else if(chartMarker==="@@CHART_CATEGORY_PIE@@"){
+     const data=a.chartData,vals=data.points.map(p=>Math.max(0,Number(p.values?.[0])||0)),sum=vals.reduce((x,y)=>x+y,0),cx=245,cy=410,r=145,colors=[[.03,.50,.55],[.28,.72,.68],[.60,.81,.77],[.14,.29,.35],[.58,.67,.72],[.85,.65,.36],[.34,.50,.60]];
+     let angle=-Math.PI/2;
+     vals.forEach((v,i)=>{if(!v)return;const end=angle+v/sum*Math.PI*2,steps=Math.max(4,Math.ceil((end-angle)*18));const col=colors[i%colors.length];stream+=col[0]+" "+col[1]+" "+col[2]+" rg\n"+cx+" "+cy+" m\n";for(let j=0;j<=steps;j++){const t=angle+(end-angle)*j/steps;stream+=(cx+r*Math.cos(t))+" "+(cy+r*Math.sin(t))+" l\n";}stream+="h f\n";angle=end;});
+     data.points.forEach((point,i)=>{const y=590-i*30,col=colors[i%colors.length],v=vals[i];stream+=col[0]+" "+col[1]+" "+col[2]+" rg\n440 "+(y-3)+" 12 12 re f\n";stream+=op(point.label+" · "+v+" ("+(sum?v/sum*100:0).toFixed(1)+"%)",460,y,8,"F1","0.12 0.18 0.20");});
+     stream+=op("Share of the selected measure total in uploaded records only.",48,145,9,"F1","0.30 0.38 0.40");
+    }else if(chartMarker==="@@CHART_TIME_LINE@@"){
+     const data=a.trendData,metric=0,vals=data.points.map(p=>Number(p.values?.[metric])||0),max=Math.max(1,...vals),left=70,right=550,top=210,bottom=600;
+     stream+="0.75 0.82 0.84 RG\n1 w\n"+left+" "+bottom+" m "+right+" "+bottom+" l "+left+" "+top+" l S\n";
+     stream+="0.03 0.50 0.55 RG\n2.5 w\n";
+     vals.forEach((v,i)=>{const x=left+(right-left)*(i/Math.max(1,vals.length-1)),y=bottom-(bottom-top)*v/max;stream+=x+" "+y+(i===0?" m\n":" l\n");});stream+="S\n";
+     vals.forEach((v,i)=>{const x=left+(right-left)*(i/Math.max(1,vals.length-1)),y=bottom-(bottom-top)*v/max;stream+="0.03 0.50 0.55 rg\n"+(x-3)+" "+(y-3)+" 6 6 re f\n";});
+     stream+=op("Metric: "+data.series[0]+" · "+data.granularity+" totals · "+data.points.length+" periods",48,170,9,"F1","0.30 0.38 0.40");
+    }else if(chartMarker==="@@CHART_SCATTER@@"){
+     const data=a.trendData,xs=data.points.map(p=>Number(p.values?.[0])).filter(Number.isFinite),ys=data.points.map(p=>Number(p.values?.[1])).filter(Number.isFinite),xmax=Math.max(1,...xs),ymax=Math.max(1,...ys),left=85,right=550,top=220,bottom=600;
+     stream+="0.75 0.82 0.84 RG\n1 w\n"+left+" "+bottom+" m "+right+" "+bottom+" l "+left+" "+top+" l S\n";
+     data.points.forEach(p=>{const x=Number(p.values?.[0]),y=Number(p.values?.[1]);if(!Number.isFinite(x)||!Number.isFinite(y))return;const px=left+(right-left)*x/xmax,py=bottom-(bottom-top)*y/ymax;stream+="0.03 0.50 0.55 rg\n"+(px-4)+" "+(py-4)+" 8 8 re f\n";});
+     stream+=op("Horizontal: "+data.series[0]+" · Vertical: "+data.series[1],48,170,9,"F1","0.30 0.38 0.40");
+    }else{
+     const metrics=a.forecastData.metrics.filter(m=>m.status==="available"&&m.forecasts?.length);
+     metrics.slice(0,2).forEach((m,mi)=>{const y=580-mi*190;stream+=op(m.metric+" · "+m.model+" · "+m.quality,48,y+25,10,"F2","0.12 0.18 0.20");const vals=m.forecasts.map(p=>Number(p.estimate)||0),max=Math.max(1,...vals);vals.forEach((v,i)=>{const x=90+i*145;stream+="0.88 0.94 0.94 rg\n"+x+" "+(y-20)+" 90 18 re f\n0.03 0.50 0.55 rg\n"+x+" "+(y-20)+" "+Math.max(1,90*v/max)+" 18 re f\n";stream+=op(m.forecasts[i].period+" · "+v, x,y-37,8,"F1","0.12 0.18 0.20");});});
+     stream+=op("Forecasts are experimental estimates. High validation error means they should not guide operational decisions.",48,145,8,"F1","0.30 0.38 0.40");
+    }
+   }else{
    let y=700;
    for(const line of pages[p]){
+
     if(!line){y-=8;continue;}
     const heading=/^[1-9]\. /.test(line)||/^#{1,6}\\s/.test(line)||line==="AI-GENERATED BUSINESS INSIGHTS";
     if(heading){stream+="0.91 0.96 0.96 rg\n42 "+(y-7)+" 528 22 re f\n";stream+=op(line.replace(/^#{1,6}\\s*/, ""),50,y,10,"F2","0.035 0.20 0.24");y-=27;}
     else{stream+=op(line,50,y,8.5,"F1","0.12 0.18 0.20");y-=14;}
+   }
    }
    stream+="0.10 0.35 0.39 rg\n42 43 528 1 re f\n";
    stream+=op("Prepared for: "+reportBrand(),48,28,7,"F1","0.35 0.42 0.44")+op("Page "+(p+1)+" of "+pages.length,500,28,7,"F1","0.35 0.42 0.44");
