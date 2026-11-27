@@ -129,7 +129,21 @@
     .service-card p { margin:0; color:var(--muted); font-size:.89rem; }
     .service-quote{display:inline-flex;align-items:center;margin-top:17px;color:#087780;font-size:.82rem;font-weight:850;text-decoration:none;border-bottom:1px solid #9bd7d3;padding-bottom:3px}.service-quote:hover{color:#064c59;border-color:#064c59}
     .tag-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:28px; }
-    .tag { background:#e9f3f4; border:1px solid #d5e6e8; color:#315563; padding:6px 11px; font-size:.76rem; font-weight:700; border-radius:999px; }
+    .tag { background:#e9f3f4; border:1px solid #d5e6e8; color:#315563; padding:6px 11px; font-size:.76rem; font-weight:700; border-radius:999px; } 
+    .specialist-section{margin-top:38px;padding:28px 30px 30px;border:1px solid #dce9ec;border-radius:24px;background:linear-gradient(135deg,#edf6f7 0%,#f8fbfc 100%)}
+    .specialist-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:20px}
+    .specialist-heading .kicker{margin-bottom:5px}
+    .specialist-heading h3{margin:0;color:var(--navy);font-size:1.35rem;letter-spacing:-.03em}
+    .specialist-heading>p{max-width:390px;margin:0;color:var(--muted);font-size:.88rem}
+    .specialist-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .specialist-card{display:flex;align-items:flex-start;gap:14px;min-height:142px;padding:18px;background:#fff;border:1px solid #dfeaec;border-radius:17px;text-decoration:none;box-shadow:0 5px 18px rgba(8,45,62,.035);transition:transform .2s,border-color .2s,box-shadow .2s}
+    .specialist-card:hover{transform:translateY(-4px);border-color:#8fc9c9;box-shadow:0 12px 26px rgba(8,45,62,.09)}
+    .specialist-icon{flex:0 0 38px;width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#e8f7f6;color:#087b83;font-size:1.1rem}
+    .specialist-copy{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+    .specialist-copy strong{color:var(--navy);font-size:.94rem;line-height:1.35}
+    .specialist-copy small{color:var(--muted);font-size:.78rem;line-height:1.5}
+    .specialist-copy em{margin-top:4px;color:#087780;font-size:.75rem;font-style:normal;font-weight:850}
+
 
     .process-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:0; border:1px solid var(--line); border-radius:22px; overflow:hidden; }
     .process-step { padding:27px 22px; border-right:1px solid var(--line); background:#fff; }
@@ -257,7 +271,7 @@
     }
     @media (max-width:480px) {
       .hero-actions .btn { width:100%; }.trust-inner { align-items:flex-start; }.trust-items { gap:10px 15px; font-size:.8rem; }
-      .card-grid,.sector-grid,.values-grid { grid-template-columns:1fr; }.service-card { min-height:unset; }.process-grid { grid-template-columns:1fr; }.process-step,.process-step:nth-child(odd),.process-step:nth-child(even) { border-right:0; border-bottom:1px solid var(--line); }.process-step:last-child { grid-column:auto; border-bottom:0; }
+      .card-grid,.specialist-grid,.sector-grid,.values-grid { grid-template-columns:1fr; }.specialist-section{padding:22px 18px}.specialist-heading{display:block}.specialist-heading>p{margin-top:8px}.service-card { min-height:unset; }.process-grid { grid-template-columns:1fr; }.process-step,.process-step:nth-child(odd),.process-step:nth-child(even) { border-right:0; border-bottom:1px solid var(--line); }.process-step:last-child { grid-column:auto; border-bottom:0; }
       .learning-item { grid-template-columns:48px 1fr; padding:17px; gap:13px; }.learning-item .service-icon { width:48px;height:48px; }.form-card { padding:21px; }.form-grid { grid-template-columns:1fr; }.field.full { grid-column:auto; }
       .footer-brand { align-items:flex-start; flex-direction:column; gap:9px; }
     }
@@ -318,7 +332,17 @@
           <article class="service-card reveal"><div class="service-icon">⌑</div><h3>Cybersecurity & risk tools</h3><p>Explore AI-assisted monitoring, vulnerability identification, threat detection, incident response and risk assessment capabilities.</p><a class="service-quote" href="ai-workspace.html?service=cybersecurity">Open AI workspace →</a></article>
           <article class="service-card reveal"><div class="service-icon">✳</div><h3>Industry-specific AI</h3><p>Purpose-built applications for sector needs, with attention to scalability, interoperability and existing workflows.</p><a class="service-quote" href="ai-workspace.html?service=applied-ai-research">Open AI workspace →</a></article>
         </div>
-        <div class="tag-row"><a class="tag" href="ai-workspace.html?service=process-optimisation">Process optimisation ↗</a><a class="tag" href="ai-workspace.html?service=predictive-analytics">Predictive analytics ↗</a><a class="tag" href="ai-workspace.html?service=cloud-architecture">Cloud architecture ↗</a><a class="tag" href="ai-workspace.html?service=automation">Automation ↗</a><a class="tag" href="ai-workspace.html?service=decision-support">Decision support ↗</a><a class="tag" href="ai-workspace.html?service=applied-ai-research">Applied AI research ↗</a></div>
+        <div class="specialist-section">
+          <div class="specialist-heading"><div><div class="kicker">More ways we can help</div><h3>Explore our specialist capabilities</h3></div><p>Focused expertise for specific operational, technical and strategic challenges.</p></div>
+          <div class="specialist-grid">
+            <a class="specialist-card" href="ai-workspace.html?service=process-optimisation"><span class="specialist-icon">↗</span><span class="specialist-copy"><strong>Process optimisation</strong><small>Improve workflows, reduce friction and strengthen operational efficiency.</small><em>Explore capability →</em></span></a>
+            <a class="specialist-card" href="ai-workspace.html?service=predictive-analytics"><span class="specialist-icon">⌁</span><span class="specialist-copy"><strong>Predictive analytics</strong><small>Use data patterns to explore trends, anticipate outcomes and plan ahead.</small><em>Explore capability →</em></span></a>
+            <a class="specialist-card" href="ai-workspace.html?service=cloud-architecture"><span class="specialist-icon">☁</span><span class="specialist-copy"><strong>Cloud architecture</strong><small>Plan secure, scalable cloud systems and technology infrastructure.</small><em>Explore capability →</em></span></a>
+            <a class="specialist-card" href="ai-workspace.html?service=automation"><span class="specialist-icon">⚙</span><span class="specialist-copy"><strong>Automation</strong><small>Identify repeatable tasks and design smarter connected workflows.</small><em>Explore capability →</em></span></a>
+            <a class="specialist-card" href="ai-workspace.html?service=decision-support"><span class="specialist-icon">◈</span><span class="specialist-copy"><strong>Decision support</strong><small>Turn business information into structured insight for better decisions.</small><em>Explore capability →</em></span></a>
+            <a class="specialist-card" href="ai-workspace.html?service=applied-ai-research"><span class="specialist-icon">✳</span><span class="specialist-copy"><strong>Applied AI research</strong><small>Explore practical AI methods, prototypes and new applications.</small><em>Explore capability →</em></span></a>
+          </div>
+        </div>
       </div>
     </section>
 
