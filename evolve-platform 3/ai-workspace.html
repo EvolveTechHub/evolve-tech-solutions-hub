@@ -138,7 +138,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color
 <div class="actions"><button class="primary" type="button" id="runAiButton">Run AI task →</button><button class="secondary" type="submit" id="submitButton">Send to Evolve for expert review</button><button class="secondary" type="button" id="editButton">Edit request</button></div><section id="accountGate" hidden style="margin-top:16px;padding:18px;border:1px solid #b9dedd;border-radius:14px;background:#f4fbfa">
 <strong>Sign in to run this task</strong>
 <p class="smallprint">We will use the email address already entered above. Enter your Client Account password to verify your account. Your service and answers will stay on this page.</p>
-<label for="gateEmail">Account email</label><input id="gateEmail" type="email" autocomplete="username" readonly>
+<label for="gateEmail">Account email</label><input id="gateEmail" type="email" autocomplete="username" maxlength="254" required placeholder="Enter the account you want to use">
 <label for="gatePassword">Account password</label><input id="gatePassword" type="password" autocomplete="current-password" maxlength="128">
 <div class="actions"><button type="button" class="primary" id="signInAndRunButton">Sign in and run AI</button><a href="/client.html" id="createAccountFromGate" class="secondary">Create a Client Account</a></div>
 <p id="accountGateMessage" class="smallprint" role="status" aria-live="polite"></p>
@@ -1007,12 +1007,20 @@ async function runAiTask(){
  const preferences=["Service-specific questions and answers:\n"+(specialistContext()||"Not provided"),"Audience: "+(val("audience")||"Not specified"),"Success measure: "+(val("success")||"Not specified"),"Preferred deliverables: "+(selectedOutputs().join(", ")||"Not specified"),"Constraints: "+(val("constraints")||"Not specified")].join("\n");
  try{
   const response=await fetch("/api/client/ai-tasks",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({service:service.name,mode:form.querySelector('input[name="mode"]:checked').value,objective:val("objective"),preferences,aiConsent:true,privacyConsent:document.getElementById("privacyConsent").checked})});
-  const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||"The AI task could not be completed.");
-  message.textContent="AI task completed and saved to your Client Account. Remaining tasks in the current 24-hour window: "+data.remainingToday+". Review the result before relying on it.";
+  const data=await response.json();if(!response.ok||!data.ok){const error=new Error(data.message||"The AI task could not be completed.");error.status=response.status;throw error;}
+  document.getElementById("accountGate").hidden=true;message.textContent="AI task completed and saved to your Client Account. Remaining tasks in the current 24-hour window: "+data.remainingToday+". Review the result before relying on it.";
   message.style.color="#08745f";
   showResult(data.task.result,data.task.service+" · "+new Date(data.task.createdAt).toLocaleString()+" · "+data.task.model);
   loadHistory();
- }catch(error){message.textContent=error.message||"AI task failed. Please try again.";message.style.color="#a33434";}
+ }catch(error){
+  if(error&&error.status===429){
+   const gate=document.getElementById("accountGate"),gateEmail=document.getElementById("gateEmail"),gatePassword=document.getElementById("gatePassword"),gateMessage=document.getElementById("accountGateMessage");
+   gateEmail.value=val("email")||"";gatePassword.value="";gate.hidden=false;
+   gateMessage.textContent="This account has reached its 24-hour AI task limit. To use another existing Evolve account, enter that account's email address and password here. The original account's limit remains unchanged.";
+   gateMessage.style.color="#8a5a16";gateEmail.focus();
+   message.textContent="This account has reached its initial limit of 3 AI tasks in 24 hours. You can switch to another existing account below.";message.style.color="#8a5a16";
+  }else{message.textContent=error.message||"AI task failed. Please try again.";message.style.color="#a33434";}
+ }
  finally{button.disabled=false;button.textContent="Run AI task →";}
 }
 document.getElementById("runAiButton").addEventListener("click",async()=>{
@@ -1024,7 +1032,7 @@ document.getElementById("runAiButton").addEventListener("click",async()=>{
 document.getElementById("signInAndRunButton").addEventListener("click",async()=>{
  const email=document.getElementById("gateEmail").value.trim(),password=document.getElementById("gatePassword").value,gateMessage=document.getElementById("accountGateMessage"),button=document.getElementById("signInAndRunButton");
  if(!password){gateMessage.textContent="Enter your Client Account password.";return;}button.disabled=true;gateMessage.textContent="Verifying your account…";
- try{const response=await fetch("/api/client/login",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({email,password})});const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||"Sign-in could not be completed. Check your details or create an account.");document.getElementById("gatePassword").value="";await loadAccount();if(!signedIn)throw new Error("Your account session could not be confirmed. Please try again.");await runAiTask();}
+ try{const response=await fetch("/api/client/login",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({email,password})});const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||"Sign-in could not be completed. Check your details or create an account.");document.getElementById("gatePassword").value="";await loadAccount();if(!signedIn)throw new Error("Your account session could not be confirmed. Please try again.");document.getElementById("accountGateMessage").textContent="Signed in to "+email+". Running your preserved task…";await runAiTask();}
  catch(error){gateMessage.textContent=error.message||"We could not verify your account. Please try again.";}
  finally{button.disabled=false;}
 });
