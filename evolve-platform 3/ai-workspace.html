@@ -120,6 +120,11 @@ input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color
 <p id="datasetMessage" role="status" aria-live="polite" class="smallprint"></p>
 <div id="datasetResults" hidden></div>
 </section>
+<section id="specialistQuestions" style="margin:22px 0;padding:18px;border:1px solid #dce8eb;border-radius:15px;background:#fbfdfe">
+<h3 style="margin:0 0 6px;color:#0a3948">Questions for this service</h3>
+<p class="smallprint">These prompts are tailored to the selected service. Answer what you can; leave anything unknown blank.</p>
+<div id="specialistQuestionFields"></div>
+</section>
 <label for="constraints">Important constraints or preferences <span class="smallprint">(optional)</span></label>
 <textarea id="constraints" maxlength="1500" style="min-height:86px" placeholder="Tools, systems, timelines, formats, standards or requirements that must be respected."></textarea>
 <div style="position:absolute;left:-10000px" aria-hidden="true"><label for="website">Leave empty</label><input id="website" autocomplete="off" tabindex="-1"></div>
@@ -168,10 +173,32 @@ const services={
 "decision-support":{name:"Decision Support",intro:"Structure complex management decisions and compare options using transparent evidence and criteria.",hint:"Describe the decision, decision owner, available options, evaluation criteria, constraints, time horizon and stakeholders."},
 "applied-ai-research":{name:"Applied AI Research",intro:"Investigate practical AI approaches, research questions, prototypes and application pathways.",hint:"Describe the problem, intended users, research question, available information, candidate approaches, evaluation criteria and practical constraints."}
 };
+const specialistQuestions={
+"custom-ai-software":[["users","Who are the main user groups and what should each be able to do?","e.g. administrators, staff, customers and their key tasks"],["coreFeatures","Which essential features or user journeys should the first release include?","List the most important functions and steps."],["systems","Which existing systems, data sources or services may need to connect?","Name systems where known; do not share credentials."],["delivery","What platforms and operational requirements matter most?","e.g. web/mobile, accessibility, security, scale, support"] ],
+"data-analytics-platforms":[["sources","Which source systems and data types should the platform bring together?","e.g. finance system, CRM, spreadsheets, operational databases"],["metrics","Which KPIs, reports or dashboards are most important?","Name measures and how they are currently defined, if known."],["users","Who needs access, and what should different users be allowed to see?","e.g. executives, analysts, department managers"],["operations","How often should data refresh, and who will own data quality?","e.g. daily refresh, named business owner or review team"] ],
+"cybersecurity":[["authorisation","What organisation or systems are you authorised to protect, and what is your role?","Describe ownership or permission and the approved scope."],["assets","Which assets are in scope for this defensive review?","e.g. company website, employee devices, cloud accounts; no addresses or credentials."],["concerns","What security concerns or control gaps have already been observed?","e.g. account access, backups, patching, staff awareness"],["priority","Which defensive outcomes matter most?","e.g. risk register, security policy, incident readiness, remediation plan"] ],
+"industry-specific-ai":[["sector","Which industry, subsector and operating environment should the solution serve?","e.g. healthcare administration, retail distribution, education"],["workflow","Which specific workflow or service should be improved?","Describe who does what today and where the challenge occurs."],["data","What information could be used, and what restrictions apply?","Mention data types and any privacy, safety or regulatory review needs."],["oversight","Which decisions must remain under human review?","Identify high-impact decisions, approvals or escalation points."] ],
+"process-optimisation":[["process","Which process should be reviewed, and where does it begin and end?","Describe the process boundary and intended customer or business outcome."],["steps","What are the main steps, roles and hand-offs today?","List the sequence and teams involved."],["performance","Where do delays, rework, errors or queues appear?","Share approximate volumes or wait times if known."],["target","What measurable improvement would be valuable?","e.g. shorter turnaround, fewer errors, clearer accountability"] ],
+"predictive-analytics":[["target","What outcome or measure do you want to estimate?","e.g. monthly demand, service volume, inventory needs"],["horizon","How far ahead and at what time interval should estimates be made?","e.g. weekly for 8 weeks, monthly for 12 months"],["history","What historical data is available, and over what period?","Mention record count, date coverage and important fields."],["drivers","What factors may influence the outcome, and how will results be used?","e.g. seasonality, campaigns, capacity; describe the decision supported."] ],
+"cloud-architecture":[["environment","What cloud or hosting environment do you currently use or prefer?","e.g. Cloudflare, AWS, Azure, Google Cloud, on-premises or undecided"],["workloads","Which applications, services and data workloads need to run there?","Describe the current system and dependencies."],["requirements","What availability, performance, security and recovery needs apply?","Include expected users or traffic and recovery expectations if known."],["costMigration","Are there budget limits, migration deadlines or service constraints?","Mention free-tier requirements, existing contracts or preferred regions if relevant."] ],
+"automation":[["trigger","What event should start the workflow?","e.g. form submission, approved invoice, scheduled report"],["steps","What steps, rules and systems are involved from start to finish?","Describe inputs, decisions, outputs and systems."],["exceptions","What exceptions, approvals or human hand-offs must be preserved?","Explain when a person should review, approve or intervene."],["controls","What audit trail, access control or failure notification is required?","e.g. logs, role permissions, retry rules, alerts"] ],
+"decision-support":[["decision","What specific decision needs to be made, and who owns it?","State the decision and the person or team accountable."],["options","Which options or alternatives are being considered?","List known options, including maintaining the current approach."],["criteria","What criteria matter most when comparing options?","e.g. cost, time, risk, service quality, strategic fit"],["evidence","What evidence, deadlines or constraints should shape the recommendation?","Identify available data and any non-negotiable conditions."] ],
+"applied-ai-research":[["question","What practical problem or research question should be investigated?","Describe the uncertainty you want the work to resolve."],["baseline","How is this problem handled today, and what is the current baseline?","Mention existing tools, process and known limitations."],["approaches","Which AI approaches or alternatives should be considered?","e.g. language models, forecasting, computer vision, rules-based methods"],["evaluation","How should a prototype or research outcome be evaluated?","e.g. accuracy, reliability, fairness, latency, usability, cost"] ]
+};
 const params=new URLSearchParams(location.search),key=params.get("service")||"predictive-analytics",service=services[key]||services["predictive-analytics"];
 document.getElementById("serviceLabel").textContent=service.name;
 document.getElementById("workspaceTitle").textContent="Configure your "+service.name+" task";
 document.getElementById("workspaceIntro").textContent=service.intro+" "+service.hint;
+const specialistFieldHost=document.getElementById("specialistQuestionFields");
+const activeSpecialistQuestions=specialistQuestions[key]||[];
+for(const [fieldId,question,placeholder] of activeSpecialistQuestions){
+ const label=document.createElement("label");label.htmlFor="specialist_"+fieldId;label.textContent=question;
+ const field=document.createElement("textarea");field.id="specialist_"+fieldId;field.dataset.specialistField=fieldId;field.maxLength=650;field.rows=2;field.style.minHeight="76px";field.placeholder=placeholder;
+ specialistFieldHost.append(label,field);
+}
+function specialistContext(){
+ return activeSpecialistQuestions.map(([fieldId,question])=>({question,answer:document.getElementById("specialist_"+fieldId)?.value.trim()||""})).filter(item=>item.answer).map(item=>item.question+"\n"+item.answer).join("\n\n");
+}
 let signedIn=false,latestResult="",latestMeta="",lastDatasetAnalysis=null,latestDatasetInsights="";
 async function loadAccount(){
  const history=document.getElementById("aiHistory");
@@ -939,7 +966,7 @@ document.getElementById("reviewButton").addEventListener("click",()=>{
  if(!form.reportValidity())return;
  reviewContent.replaceChildren();
  safeLine("Service",service.name);safeLine("Mode",form.querySelector('input[name="mode"]:checked').value);
- safeLine("Objective and instructions",val("objective"));safeLine("Audience",val("audience"));
+ safeLine("Objective and instructions",val("objective"));safeLine("Service-specific answers",specialistContext());safeLine("Audience",val("audience"));
  safeLine("Success measure",val("success"));safeLine("Deliverables",selectedOutputs().join(", "));
  safeLine("Constraints",val("constraints"));safeLine("Contact",val("fullName")+" · "+val("email"));
  review.hidden=false;review.scrollIntoView({behavior:"smooth",block:"nearest"});
@@ -951,7 +978,7 @@ document.getElementById("runAiButton").addEventListener("click",async()=>{
  if(!document.getElementById("aiConsent").checked){message.textContent="Please read and accept the AI Workspace Use Policy before running an AI task.";message.style.color="#a33434";return;}
  const button=document.getElementById("runAiButton");button.disabled=true;button.textContent="AI is working…";
  message.textContent="Your task is being processed. Please keep this page open.";message.style.color="#37515d";
- const preferences=["Audience: "+(val("audience")||"Not specified"),"Success measure: "+(val("success")||"Not specified"),"Preferred deliverables: "+(selectedOutputs().join(", ")||"Not specified"),"Constraints: "+(val("constraints")||"Not specified")].join("\n");
+ const preferences=["Service-specific questions and answers:\n"+(specialistContext()||"Not provided"),"Audience: "+(val("audience")||"Not specified"),"Service-specific questions and answers:\n"+(specialistContext()||"Not provided"),"Success measure: "+(val("success")||"Not specified"),"Preferred deliverables: "+(selectedOutputs().join(", ")||"Not specified"),"Constraints: "+(val("constraints")||"Not specified")].join("\n");
  try{
   const response=await fetch("/api/client/ai-tasks",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({service:service.name,mode:form.querySelector('input[name="mode"]:checked').value,objective:val("objective"),preferences,aiConsent:true,privacyConsent:document.getElementById("privacyConsent").checked})});
   const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||"The AI task could not be completed.");
