@@ -135,7 +135,15 @@ input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color
 <h3>Review your request before submitting</h3>
 <p class="smallprint">Check the details below. Submission sends a service request to Evolve for review; it does not start automated AI execution.</p>
 <div id="reviewContent"></div>
-<div class="actions"><button class="primary" type="button" id="runAiButton">Run AI task →</button><button class="secondary" type="submit" id="submitButton">Send to Evolve for expert review</button><button class="secondary" type="button" id="editButton">Edit request</button></div><p class="smallprint" id="aiRunNote">Sign in to your Client Account to run AI tasks. Initial limit: 3 tasks per account per 24 hours.</p>
+<div class="actions"><button class="primary" type="button" id="runAiButton">Run AI task →</button><button class="secondary" type="submit" id="submitButton">Send to Evolve for expert review</button><button class="secondary" type="button" id="editButton">Edit request</button></div><section id="accountGate" hidden style="margin-top:16px;padding:18px;border:1px solid #b9dedd;border-radius:14px;background:#f4fbfa">
+<strong>Sign in to run this task</strong>
+<p class="smallprint">We will use the email address already entered above. Enter your Client Account password to verify your account. Your service and answers will stay on this page.</p>
+<label for="gateEmail">Account email</label><input id="gateEmail" type="email" autocomplete="username" readonly>
+<label for="gatePassword">Account password</label><input id="gatePassword" type="password" autocomplete="current-password" maxlength="128">
+<div class="actions"><button type="button" class="primary" id="signInAndRunButton">Sign in and run AI</button><a href="/client.html" id="createAccountFromGate" class="secondary">Create a Client Account</a></div>
+<p id="accountGateMessage" class="smallprint" role="status" aria-live="polite"></p>
+</section>
+<p class="smallprint" id="aiRunNote">Sign in to your Client Account to run AI tasks. Initial limit: 3 tasks per account per 24 hours.</p>
 </div>
 <div id="formMessage" role="status" aria-live="polite"></div><section id="aiResultPanel" class="panel" hidden style="margin-top:20px;background:#f4fbfa;border-color:#b9dedd"><h2>AI task result</h2><p class="smallprint" id="aiResultMeta"></p><pre id="aiResult" style="white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.65;color:#173847"></pre><div class="actions"><button type="button" class="secondary" id="copyResult">Copy result</button><button type="button" class="secondary" id="downloadResult">Download text report</button></div></section><section class="panel" style="margin-top:20px"><h2>Recent AI tasks</h2><p class="smallprint">Your latest saved AI task results appear here when you are signed in.</p><div id="aiHistory" class="smallprint">Sign in to load your task history.</div></section>
 </form>
@@ -200,7 +208,7 @@ for(const [fieldId,question,placeholder] of activeSpecialistQuestions){
 function specialistContext(){
  return activeSpecialistQuestions.map(([fieldId,question])=>({question,answer:document.getElementById("specialist_"+fieldId)?.value.trim()||""})).filter(item=>item.answer).map(item=>item.question+"\n"+item.answer).join("\n\n");
 }
-let signedIn=false,latestResult="",latestMeta="",lastDatasetAnalysis=null,latestDatasetInsights="";
+let signedIn=false,latestResult="",latestMeta="",lastDatasetAnalysis=null,latestDatasetInsights="",pendingAutoRun=false;
 async function loadAccount(){
  const history=document.getElementById("aiHistory");
  history.textContent="Checking your Client Account session…";
@@ -216,6 +224,7 @@ async function loadAccount(){
    document.getElementById("organisation").value=d.client.organisation||"";
    document.getElementById("aiRunNote").textContent="Signed in. AI tasks will be saved to this Client Account. Initial limit: 3 tasks per account per 24 hours.";
    await loadHistory();
+   if(pendingAutoRun){pendingAutoRun=false;try{sessionStorage.removeItem("evolve_pending_ai_autorun");}catch{} await runAiTask();}
   }else{
    signedIn=false;
    document.getElementById("aiRunNote").textContent="This browser session is not signed in. Open My Dashboard or sign in to your Client Account before running AI tasks.";
@@ -962,6 +971,22 @@ document.getElementById("analyseDataset").addEventListener("click",async()=>{
 const form=document.getElementById("aiTaskForm"),review=document.getElementById("reviewPanel"),reviewContent=document.getElementById("reviewContent"),message=document.getElementById("formMessage");
 function val(id){return document.getElementById(id).value.trim()}
 function selectedOutputs(){return [...form.querySelectorAll('input[name="outputs"]:checked')].map(x=>x.value)}
+function savePendingTask(){
+ const controls=[...form.elements].map((el,index)=>({index,type:el.type||"",value:el.value,checked:!!el.checked})).filter(x=>x.type!=="file"&&x.type!=="password"&&x.type!=="submit"&&x.type!=="button");
+ sessionStorage.setItem("evolve_pending_ai_task",JSON.stringify({service:key,controls,createdAt:Date.now()}));
+ sessionStorage.setItem("evolve_pending_ai_autorun","1");
+}
+function restorePendingTask(){
+ try{
+  const raw=sessionStorage.getItem("evolve_pending_ai_task");if(!raw)return;
+  const saved=JSON.parse(raw);if(saved.service!==key||!Array.isArray(saved.controls))return;
+  const elements=[...form.elements];for(const item of saved.controls){const el=elements[item.index];if(!el||el.type==="file"||el.type==="password"||el.type==="submit"||el.type==="button")continue;if(el.type==="checkbox"||el.type==="radio")el.checked=!!item.checked;else if(item.value!==undefined)el.value=item.value;}
+  sessionStorage.removeItem("evolve_pending_ai_task");
+  pendingAutoRun=sessionStorage.getItem("evolve_pending_ai_autorun")==="1";
+  document.getElementById("reviewButton").click();
+  document.getElementById("accountGateMessage").textContent="Your previous answers have been restored. The task will continue after your account is verified. If you uploaded a dataset, please select it again.";
+ }catch{sessionStorage.removeItem("evolve_pending_ai_task");sessionStorage.removeItem("evolve_pending_ai_autorun");}
+}
 function safeLine(label,value){const row=document.createElement("div");row.className="review-line";const strong=document.createElement("strong");strong.textContent=label+": ";row.append(strong,document.createTextNode(value||"Not specified"));reviewContent.append(row)}
 document.getElementById("reviewButton").addEventListener("click",()=>{
  if(!form.reportValidity())return;
@@ -973,9 +998,9 @@ document.getElementById("reviewButton").addEventListener("click",()=>{
  review.hidden=false;review.scrollIntoView({behavior:"smooth",block:"nearest"});
 });
 document.getElementById("editButton").addEventListener("click",()=>{review.hidden=true;document.getElementById("reviewButton").focus()});
-document.getElementById("runAiButton").addEventListener("click",async()=>{
+async function runAiTask(){
  if(!form.reportValidity()||review.hidden)return;
- if(!signedIn){message.textContent="Please sign in to your Client Account before running an AI task.";message.style.color="#a33434";return;}
+ if(!signedIn){message.textContent="Please verify your Client Account to continue.";message.style.color="#a33434";return;}
  if(!document.getElementById("aiConsent").checked){message.textContent="Please read and accept the AI Workspace Use Policy before running an AI task.";message.style.color="#a33434";return;}
  const button=document.getElementById("runAiButton");button.disabled=true;button.textContent="AI is working…";
  message.textContent="Your task is being processed. Please keep this page open.";message.style.color="#37515d";
@@ -989,7 +1014,22 @@ document.getElementById("runAiButton").addEventListener("click",async()=>{
   loadHistory();
  }catch(error){message.textContent=error.message||"AI task failed. Please try again.";message.style.color="#a33434";}
  finally{button.disabled=false;button.textContent="Run AI task →";}
+}
+document.getElementById("runAiButton").addEventListener("click",async()=>{
+ if(!form.reportValidity()||review.hidden)return;
+ if(!document.getElementById("aiConsent").checked){message.textContent="Please read and accept the AI Workspace Use Policy before running a task.";message.style.color="#a33434";return;}
+ if(!signedIn){const email=val("email");if(!email){message.textContent="Enter your email address before continuing.";message.style.color="#a33434";return;}document.getElementById("gateEmail").value=email;document.getElementById("accountGate").hidden=false;document.getElementById("accountGateMessage").textContent="Sign in with your existing Client Account, or create an account to continue. Your answers remain on this page.";document.getElementById("gatePassword").focus();return;}
+ await runAiTask();
 });
+document.getElementById("signInAndRunButton").addEventListener("click",async()=>{
+ const email=document.getElementById("gateEmail").value.trim(),password=document.getElementById("gatePassword").value,gateMessage=document.getElementById("accountGateMessage"),button=document.getElementById("signInAndRunButton");
+ if(!password){gateMessage.textContent="Enter your Client Account password.";return;}button.disabled=true;gateMessage.textContent="Verifying your account…";
+ try{const response=await fetch("/api/client/login",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({email,password})});const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||"Sign-in could not be completed. Check your details or create an account.");document.getElementById("gatePassword").value="";await loadAccount();if(!signedIn)throw new Error("Your account session could not be confirmed. Please try again.");await runAiTask();}
+ catch(error){gateMessage.textContent=error.message||"We could not verify your account. Please try again.";}
+ finally{button.disabled=false;}
+});
+document.getElementById("createAccountFromGate").addEventListener("click",event=>{event.preventDefault();try{savePendingTask();}catch{document.getElementById("accountGateMessage").textContent="Your browser could not preserve the task. Please try signing in instead.";return;}window.location.href="/client.html?returnTo="+encodeURIComponent(location.pathname+location.search);});
+restorePendingTask();
 document.getElementById("copyResult").addEventListener("click",async()=>{
  if(!latestResult)return;
  try{await navigator.clipboard.writeText(latestResult);document.getElementById("aiResultMeta").textContent=latestMeta+" · Copied to clipboard";}
