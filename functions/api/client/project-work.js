@@ -24,6 +24,15 @@ async function ensureTables(DB) {
     updated_at TEXT NOT NULL
   )`).run();
   await DB.prepare("CREATE INDEX IF NOT EXISTS idx_project_tasks_milestone ON client_project_tasks(milestone_id, created_at)").run();
+  await DB.prepare(`CREATE TABLE IF NOT EXISTS client_project_activity (
+    id TEXT PRIMARY KEY, project_id TEXT NOT NULL, client_account_id TEXT NOT NULL,
+    event_type TEXT NOT NULL, description TEXT NOT NULL, created_at TEXT NOT NULL
+  )`).run();
+  await DB.prepare("CREATE INDEX IF NOT EXISTS idx_project_activity_project ON client_project_activity(project_id,created_at DESC)").run();
+}
+async function recordActivity(DB,projectId,accountId,eventType,description,now){
+  await DB.prepare("INSERT INTO client_project_activity(id,project_id,client_account_id,event_type,description,created_at) VALUES(?,?,?,?,?,?)")
+    .bind(crypto.randomUUID(),projectId,accountId,eventType,description,now).run();
 }
 const clean=(v,n)=>typeof v==="string"?v.trim().slice(0,n):"";
 
@@ -66,6 +75,7 @@ export async function onRequestPost({request,env}) {
       if((count?.n||0)>=30) return clientJson({ok:false,message:"A project can have up to 30 milestones."},400);
       const id=crypto.randomUUID();
       await env.DB.prepare("INSERT INTO client_project_milestones(id,project_id,title,description,sort_order,created_at,updated_at) VALUES(?,?,?,?,?,?,?)").bind(id,projectId,title,description,count?.n||0,now,now).run();
+      await recordActivity(env.DB,projectId,accountId,"milestone_created","Milestone added: "+title,now);
       return clientJson({ok:true,milestone:{id,title,description}},201);
     }
     if(action==="create_task"){
@@ -77,6 +87,7 @@ export async function onRequestPost({request,env}) {
       if((count?.n||0)>=100) return clientJson({ok:false,message:"A milestone can have up to 100 tasks."},400);
       const id=crypto.randomUUID();
       await env.DB.prepare("INSERT INTO client_project_tasks(id,milestone_id,title,description,status,created_at,updated_at) VALUES(?,?,?,?, 'Not started',?,?)").bind(id,milestoneId,title,description,now,now).run();
+      await recordActivity(env.DB,projectId,accountId,"task_created","Task added: "+title,now);
       return clientJson({ok:true,task:{id,milestone_id:milestoneId,title,description,status:"Not started"}},201);
     }
     if(action==="update_task"){
@@ -85,6 +96,7 @@ export async function onRequestPost({request,env}) {
       const task=await env.DB.prepare("SELECT t.id FROM client_project_tasks t JOIN client_project_milestones m ON m.id=t.milestone_id WHERE t.id=? AND m.project_id=?").bind(taskId,projectId).first();
       if(!task) return clientJson({ok:false,message:"Task not found in this project."},404);
       await env.DB.prepare("UPDATE client_project_tasks SET status=?,updated_at=? WHERE id=?").bind(status,now,taskId).run();
+      await recordActivity(env.DB,projectId,accountId,"task_status_changed","Task status changed to "+status+".",now);
       return clientJson({ok:true,message:"Task status updated."});
     }
     return clientJson({ok:false,message:"Unknown project action."},400);
