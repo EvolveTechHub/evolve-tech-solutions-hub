@@ -316,7 +316,7 @@ export async function onRequestPost({ request, env }) {
     if (headers.length > MAX_COLUMNS) return clientJson({ ok: false, message: "The dataset exceeds the 100-column limit." }, 400);
     if (new Set(headers.map(h => h.toLowerCase())).size !== headers.length) return clientJson({ ok: false, message: "Column names must be unique. Please rename duplicate headers." }, 400);
     const data = rows.slice(1).map(r => headers.map((_, i) => (r[i] ?? "").trim()));
-    const preview = data.slice(0, 8).map(r => Object.fromEntries(headers.map((h, i) => [h, r[i]])));
+
     const columns = headers.map((name, index) => {
       const values = data.map(r => r[index]);
       const nonempty = values.filter(v => v !== "");
@@ -338,8 +338,17 @@ export async function onRequestPost({ request, env }) {
         const counts = new Map();
         for (const v of nonempty) counts.set(v, (counts.get(v) || 0) + 1);
         const privateField = /(^|\b)(name|email|e-mail|phone|mobile|telephone|address|username|user\s*id|customer\s*id|client\s*id|student\s*id|employee\s*id|passport|national\s*id|account\s*number)(\b|$)/i.test(name);
-        const personalValue = value => /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(value) || /(?:\+?\d[\d ().-]{7,}\d)/.test(value);
-        summary.privacySuppressed = privateField || nonempty.some(personalValue);
+        const hasEmail = nonempty.some(value => /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(value));
+        const hasPhone = nonempty.some(value => {
+          if (dateKey(value)) return false;
+          const digits = value.replace(/\D/g, "");
+          return digits.length >= 10 && digits.length <= 15;
+        });
+        summary.privacySuppressed = privateField || hasEmail || hasPhone;
+        summary.privacyReason = privateField ? "The column heading identifies a personal or account field."
+          : hasEmail && hasPhone ? "Email-address and phone-like values were detected."
+          : hasEmail ? "Email-address values were detected."
+          : hasPhone ? "Phone-like values were detected." : "";
         summary.topValues = summary.privacySuppressed ? [] : [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([value, count]) => ({ value: value.slice(0, 120), count }));
       }
       return summary;
@@ -349,8 +358,11 @@ export async function onRequestPost({ request, env }) {
     const seen = new Set();
     let duplicates = 0;
     for (const r of data) { const key = JSON.stringify(r); if (seen.has(key)) duplicates++; else seen.add(key); }
+    const preview = data.slice(0, 8).map(row => Object.fromEntries(headers.map((header, index) => [
+      header, columns[index].privacySuppressed && row[index] ? "[SUPPRESSED]" : row[index]
+    ])));
     const numericIndexes = columns.map((c, i) => c.type === "numeric" ? i : -1).filter(i => i >= 0).slice(0, 3);
-    const categoryCandidates = columns.map((c, i) => ({ c, i })).filter(x => x.c.type !== "numeric" && x.c.distinct > 1 && x.c.distinct <= 12 && x.c.topValues);
+    const categoryCandidates = columns.map((c, i) => ({ c, i })).filter(x => x.c.type !== "numeric" && x.c.distinct > 1 && x.c.distinct <= 12 && x.c.topValues && !x.c.privacySuppressed);
     const categoryIndex = (categoryCandidates.find(x => /product|category|type|region|channel|segment|status/i.test(x.c.name) && !/date|time|year|month/i.test(x.c.name)) || categoryCandidates.find(x => !/date|time|year|month/i.test(x.c.name)) || categoryCandidates[0])?.i ?? -1;
     let chartData = null;
     if (categoryIndex >= 0 && numericIndexes.length) {
@@ -432,7 +444,7 @@ export async function onRequestPost({ request, env }) {
         rows: data.length,
         columnCount: headers.length,
         duplicateRows: duplicates,
-        qualityFlags: { repeatedHeaderRows },
+        qualityFlags: { repeatedHeaderRows, privacySuppressedColumns: columns.filter(column => column.privacySuppressed).map(column => ({ name: column.name, reason: column.privacyReason })) },
         preview,
         columnSummaries: columns,
         chartData,
