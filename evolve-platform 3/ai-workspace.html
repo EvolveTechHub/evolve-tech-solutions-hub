@@ -145,7 +145,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color
 </section>
 <p class="smallprint" id="aiRunNote">Sign in to your Client Account to run AI tasks. Initial limit: 3 tasks per account per 24 hours.</p>
 </div>
-<div id="formMessage" role="status" aria-live="polite"></div><section id="aiResultPanel" class="panel" hidden style="margin-top:20px;background:#f4fbfa;border-color:#b9dedd"><h2>AI task result</h2><p class="smallprint" id="aiResultMeta"></p><pre id="aiResult" style="white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.65;color:#173847"></pre><div class="actions"><button type="button" class="secondary" id="copyResult">Copy result</button><button type="button" class="secondary" id="downloadResult">Download text (.txt)</button><button type="button" class="secondary" id="downloadMarkdownResult">Download Markdown (.md)</button><button type="button" class="secondary" id="downloadHtmlResult">Download formatted report (.html)</button><button type="button" class="primary" id="downloadImplementationPack">Build implementation pack (.zip)</button></div></section><section class="panel" style="margin-top:20px"><h2>Recent AI tasks</h2><p class="smallprint">Your latest saved AI task results appear here when you are signed in.</p><div id="aiHistory" class="smallprint">Sign in to load your task history.</div></section>
+<div id="formMessage" role="status" aria-live="polite"></div><section id="aiResultPanel" class="panel" hidden style="margin-top:20px;background:#f4fbfa;border-color:#b9dedd"><h2>AI task result</h2><p class="smallprint" id="aiResultMeta"></p><pre id="aiResult" style="white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.65;color:#173847"></pre><div class="actions"><button type="button" class="secondary" id="copyResult">Copy result</button><button type="button" class="secondary" id="downloadResult">Download text (.txt)</button><button type="button" class="secondary" id="downloadMarkdownResult">Download Markdown (.md)</button><button type="button" class="secondary" id="downloadHtmlResult">Download formatted report (.html)</button><button type="button" class="primary" id="downloadImplementationPack">Build implementation pack (.zip)</button></div><section id="createProjectPanel" hidden style="margin-top:18px;padding:18px;border:1px solid #b9dedd;border-radius:14px;background:#f4fbfa"><h3 style="margin:0 0 8px;color:#0a3948">Convert this AI task into a client project</h3><p class="smallprint">Review the saved task scope below. Creating a project records it as Planned; it does not start implementation or mark any work as completed.</p><div id="projectScopePreview" class="review-line"></div><label class="option" style="margin-top:12px"><input type="checkbox" id="confirmProjectScope"><span>I have reviewed and approve this task scope to be saved as a project.</span></label><div class="actions"><button type="button" class="primary" id="confirmCreateProject">Create project</button><button type="button" class="secondary" id="cancelCreateProject">Cancel</button></div><p id="projectCreateMessage" class="smallprint" role="status" aria-live="polite"></p></section></section><section class="panel" style="margin-top:20px"><h2>Recent AI tasks</h2><p class="smallprint">Your latest saved AI task results appear here when you are signed in.</p><div id="aiHistory" class="smallprint">Sign in to load your task history.</div></section>
 </form>
 </section>
 <aside class="panel side-panel">
@@ -208,7 +208,7 @@ for(const [fieldId,question,placeholder] of activeSpecialistQuestions){
 function specialistContext(){
  return activeSpecialistQuestions.map(([fieldId,question])=>({question,answer:document.getElementById("specialist_"+fieldId)?.value.trim()||""})).filter(item=>item.answer).map(item=>item.question+"\n"+item.answer).join("\n\n");
 }
-let signedIn=false,latestResult="",latestMeta="",latestServiceName=service.name,latestTaskContext=null,lastDatasetAnalysis=null,latestDatasetInsights="",pendingAutoRun=false;
+let signedIn=false,latestResult="",latestMeta="",latestServiceName=service.name,latestTaskContext=null,latestTaskId="",lastDatasetAnalysis=null,latestDatasetInsights="",pendingAutoRun=false;
 async function loadAccount(){
  const history=document.getElementById("aiHistory");
  history.textContent="Checking your Client Account session…";
@@ -250,14 +250,19 @@ async function loadHistory(){
    const title=document.createElement("strong");title.textContent=task.service+" · "+task.task_mode;
    const date=document.createElement("div");date.textContent=new Date(task.created_at).toLocaleString();date.style.cssText="font-size:.78rem;color:#71818a;margin:4px 0";
    const open=document.createElement("button");open.type="button";open.className="secondary";open.textContent="View result";open.style.cssText="padding:7px 12px;margin-top:7px";
-   open.addEventListener("click",()=>showResult(task.result,task.service+" · "+new Date(task.created_at).toLocaleString(),task.service,{objective:task.objective,mode:task.task_mode,preferences:"Task preferences were not retained in the history record."}));
+   open.addEventListener("click",()=>showResult(task.result,task.service+" · "+new Date(task.created_at).toLocaleString(),task.service,{objective:task.objective,mode:task.task_mode,preferences:"Task preferences were not retained in the history record."},task.id));
    card.append(title,date,open);target.append(card);
   }
  }catch(e){target.textContent=e.message||"Could not load AI history.";}
 }
-function showResult(result,meta,serviceName,taskContext){
- latestResult=result;latestMeta=meta;latestServiceName=serviceName||service.name;latestTaskContext=taskContext||latestTaskContext;document.getElementById("aiResultMeta").textContent=meta;
+function showResult(result,meta,serviceName,taskContext,taskId){
+ latestResult=result;latestMeta=meta;latestServiceName=serviceName||service.name;latestTaskContext=taskContext||latestTaskContext;latestTaskId=taskId||"";
+ document.getElementById("aiResultMeta").textContent=meta;
  document.getElementById("aiResult").textContent=result;
+ document.getElementById("createProjectPanel").hidden=!signedIn||!latestTaskId;
+ document.getElementById("confirmProjectScope").checked=false;
+ document.getElementById("projectCreateMessage").textContent="";
+ document.getElementById("projectScopePreview").textContent="Service: "+latestServiceName+"\nObjective: "+(latestTaskContext?.objective||"Not available in the saved task record.")+"\n\nThe full AI deliverable will be stored as the project's initial scope snapshot.";
  const panel=document.getElementById("aiResultPanel");panel.hidden=false;
  panel.scrollIntoView({behavior:"smooth",block:"start"});
 }
@@ -1030,7 +1035,7 @@ async function runAiTask(){
   const data=await response.json();if(!response.ok||!data.ok){const error=new Error(data.message||"The AI task could not be completed.");error.status=response.status;throw error;}
   document.getElementById("accountGate").hidden=true;message.textContent="AI task completed and saved to your Client Account. Remaining tasks in the current 24-hour window: "+data.remainingToday+". Review the result before relying on it.";
   message.style.color="#08745f";
-  showResult(data.task.result,data.task.service+" · "+new Date(data.task.createdAt).toLocaleString()+" · "+data.task.model,data.task.service,{objective:val("objective"),mode:form.querySelector('input[name="mode"]:checked').value,preferences});
+  showResult(data.task.result,data.task.service+" · "+new Date(data.task.createdAt).toLocaleString()+" · "+data.task.model,data.task.service,{objective:val("objective"),mode:form.querySelector('input[name="mode"]:checked').value,preferences},data.task.id);
   loadHistory();
  }catch(error){
   if(error&&error.status===429){
@@ -1059,6 +1064,21 @@ document.getElementById("signInAndRunButton").addEventListener("click",async()=>
 document.getElementById("createAccountFromGate").addEventListener("click",event=>{event.preventDefault();try{savePendingTask();}catch{document.getElementById("accountGateMessage").textContent="Your browser could not preserve the task. Please try signing in instead.";return;}window.location.href="/client.html?returnTo="+encodeURIComponent(location.pathname+location.search);});
 restorePendingTask();
 loadAccount();
+document.getElementById("cancelCreateProject").addEventListener("click",()=>{document.getElementById("createProjectPanel").hidden=true;});
+document.getElementById("confirmCreateProject").addEventListener("click",async()=>{
+ const status=document.getElementById("projectCreateMessage"),button=document.getElementById("confirmCreateProject");
+ if(!signedIn){status.textContent="Sign in to your Client Account before creating a project.";return;}
+ if(!latestTaskId){status.textContent="Open a saved AI task result before creating a project.";return;}
+ if(!document.getElementById("confirmProjectScope").checked){status.textContent="Review the scope and confirm it before continuing.";return;}
+ button.disabled=true;button.textContent="Creating project…";status.textContent="Saving your approved scope to your Client Account…";
+ try{
+  const response=await fetch("/api/client/projects",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({taskId:latestTaskId,confirmScope:true})});
+  const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||"The project could not be created.");
+  status.textContent=data.message+" Project reference: "+data.project.id+" · Status: "+data.project.status+".";
+  const link=document.createElement("a");link.href="/client-dashboard.html#myProjects";link.textContent="View My Projects →";link.style.marginLeft="8px";status.append(link);
+ }catch(error){status.textContent=error.message||"The project could not be created. Please try again.";}
+ finally{button.disabled=false;button.textContent="Create project";}
+});
 document.getElementById("copyResult").addEventListener("click",async()=>{
  if(!latestResult)return;
  try{await navigator.clipboard.writeText(latestResult);document.getElementById("aiResultMeta").textContent=latestMeta+" · Copied to clipboard";}
