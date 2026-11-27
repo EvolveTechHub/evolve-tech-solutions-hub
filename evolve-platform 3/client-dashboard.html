@@ -31,6 +31,44 @@ async function loadAiTasks(){
   }
  }catch(error){target.textContent=error.message||'Could not load AI task history.';}
 }
+async function projectAction(payload){
+ const response=await fetch('/api/client/project-work',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+ const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'Project update failed.');return data;
+}
+async function renderProjectPlan(projectId,target){
+ try{
+  const response=await fetch('/api/client/project-work?projectId='+encodeURIComponent(projectId),{cache:'no-store',credentials:'same-origin'});
+  const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'Could not load project plan.');
+  target.replaceChildren();
+  if(!data.milestones.length){const empty=document.createElement('p');empty.className='request-meta';empty.textContent='No milestones yet. Add the first delivery stage below.';target.append(empty);return;}
+  for(const milestone of data.milestones){
+   const group=document.createElement('div');group.style.cssText='border:1px solid #d9e7eb;border-radius:11px;padding:12px;margin:10px 0';
+   const heading=document.createElement('strong');heading.textContent=milestone.title;group.append(heading);
+   if(milestone.description){const desc=document.createElement('p');desc.className='request-meta';desc.textContent=milestone.description;group.append(desc);}
+   const tasks=data.tasks.filter(task=>task.milestone_id===milestone.id);
+   const completed=tasks.filter(task=>task.status==='Completed').length;
+   const progress=document.createElement('p');progress.className='request-meta';progress.textContent=tasks.length?completed+' of '+tasks.length+' tasks completed ('+Math.round(completed/tasks.length*100)+'%)':'No tasks added yet';group.append(progress);
+   for(const task of tasks){
+    const line=document.createElement('div');line.style.cssText='display:grid;gap:6px;padding:9px 0;border-top:1px solid #edf2f4';
+    const taskName=document.createElement('strong');taskName.textContent=task.title;line.append(taskName);
+    if(task.description){const taskDesc=document.createElement('span');taskDesc.className='request-meta';taskDesc.textContent=task.description;line.append(taskDesc);}
+    const select=document.createElement('select');select.setAttribute('aria-label','Status for '+task.title);
+    for(const value of ['Not started','In progress','Under review','Completed']){const option=document.createElement('option');option.value=value;option.textContent=value;select.append(option);}
+    select.value=task.status;select.addEventListener('change',async()=>{select.disabled=true;try{await projectAction({action:'update_task',projectId,taskId:task.id,status:select.value});await renderProjectPlan(projectId,target);}catch(error){select.value=task.status;window.alert(error.message);}finally{select.disabled=false;}});
+    line.append(select);group.append(line);
+   }
+   const taskForm=document.createElement('form');taskForm.style.cssText='display:grid;gap:7px;margin-top:10px';
+   const taskHeading=document.createElement('strong');taskHeading.textContent='Add a task';
+   const taskTitle=document.createElement('input');taskTitle.required=true;taskTitle.maxLength=140;taskTitle.placeholder='Task title';taskTitle.setAttribute('aria-label','Task title');
+   const taskDescription=document.createElement('input');taskDescription.maxLength=1000;taskDescription.placeholder='Task description (optional)';taskDescription.setAttribute('aria-label','Task description');
+   const add=document.createElement('button');add.type='submit';add.textContent='Add task';
+   const message=document.createElement('span');message.className='request-meta';message.setAttribute('aria-live','polite');
+   taskForm.append(taskHeading,taskTitle,taskDescription,add,message);
+   taskForm.addEventListener('submit',async event=>{event.preventDefault();add.disabled=true;message.textContent='Saving task…';try{await projectAction({action:'create_task',projectId,milestoneId:milestone.id,title:taskTitle.value,description:taskDescription.value});await renderProjectPlan(projectId,target);}catch(error){message.textContent=error.message;}finally{add.disabled=false;}});
+   group.append(taskForm);target.append(group);
+  }
+ }catch(error){target.textContent=error.message||'Could not load project plan.';}
+}
 async function loadProjects(){
  const target=document.getElementById('clientProjects');
  try{
@@ -46,7 +84,19 @@ async function loadProjects(){
    const objective=document.createElement('p');objective.textContent=project.objective;
    const ref=document.createElement('p');ref.className='request-meta';ref.textContent='Project reference: '+project.id;
    const details=document.createElement('details');const summary=document.createElement('summary');summary.textContent='View approved scope and AI deliverable';summary.style.cssText='cursor:pointer;font-weight:700;color:#087f86;margin-top:12px';const scope=document.createElement('pre');scope.textContent=project.scope_snapshot||'No saved deliverable is available.';scope.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:.88rem;line-height:1.6;background:#f6fafb;border:1px solid #e2ecef;border-radius:10px;padding:14px;margin-top:10px';details.append(summary,scope);
-   card.append(title,meta,status,objective,ref,details);target.append(card);
+   const planning=document.createElement('section');planning.style.cssText='margin-top:16px;padding-top:14px;border-top:1px solid #e2ecef';
+   const planningTitle=document.createElement('h4');planningTitle.textContent='Milestones and tasks';planning.append(planningTitle);
+   const planningBody=document.createElement('div');planningBody.textContent='Loading project plan…';planning.append(planningBody);
+   const milestoneForm=document.createElement('form');milestoneForm.style.cssText='display:grid;gap:8px;margin-top:12px';
+   const milestoneHeading=document.createElement('strong');milestoneHeading.textContent='Add a milestone';
+   const milestoneInput=document.createElement('input');milestoneInput.required=true;milestoneInput.maxLength=140;milestoneInput.placeholder='Milestone title';milestoneInput.setAttribute('aria-label','Milestone title');
+   const milestoneDesc=document.createElement('input');milestoneDesc.maxLength=1000;milestoneDesc.placeholder='Description (optional)';milestoneDesc.setAttribute('aria-label','Milestone description');
+   const milestoneButton=document.createElement('button');milestoneButton.type='submit';milestoneButton.textContent='Add milestone';
+   const planMessage=document.createElement('p');planMessage.className='request-meta';planMessage.setAttribute('aria-live','polite');
+   milestoneForm.append(milestoneHeading,milestoneInput,milestoneDesc,milestoneButton,planMessage);
+   milestoneForm.addEventListener('submit',async event=>{event.preventDefault();milestoneButton.disabled=true;planMessage.textContent='Saving milestone…';try{await projectAction({action:'create_milestone',projectId:project.id,title:milestoneInput.value,description:milestoneDesc.value});milestoneInput.value='';milestoneDesc.value='';planMessage.textContent='Milestone saved.';await renderProjectPlan(project.id,planningBody);}catch(error){planMessage.textContent=error.message;}finally{milestoneButton.disabled=false;}});
+   planning.append(milestoneForm);card.append(title,meta,status,objective,ref,details,planning);target.append(card);
+   renderProjectPlan(project.id,planningBody);
   }
  }catch(error){target.textContent=error.message||'Could not load your projects. Refresh to try again.';}
 }
