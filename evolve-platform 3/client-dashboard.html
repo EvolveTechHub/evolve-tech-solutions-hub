@@ -45,7 +45,8 @@ async function loadProjects(){
    const status=document.createElement('span');status.className='request-status';status.textContent=project.status;
    const objective=document.createElement('p');objective.textContent=project.objective;
    const ref=document.createElement('p');ref.className='request-meta';ref.textContent='Project reference: '+project.id;
-   card.append(title,meta,status,objective,ref);target.append(card);
+   const details=document.createElement('details');const summary=document.createElement('summary');summary.textContent='View approved scope and AI deliverable';summary.style.cssText='cursor:pointer;font-weight:700;color:#087f86;margin-top:12px';const scope=document.createElement('pre');scope.textContent=project.scope_snapshot||'No saved deliverable is available.';scope.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:.88rem;line-height:1.6;background:#f6fafb;border:1px solid #e2ecef;border-radius:10px;padding:14px;margin-top:10px';details.append(summary,scope);
+   card.append(title,meta,status,objective,ref,details);target.append(card);
   }
  }catch(error){target.textContent=error.message||'Could not load your projects. Refresh to try again.';}
 }
