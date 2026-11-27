@@ -106,6 +106,25 @@ async function renderCollaboration(projectId,target){
   await fetch('/api/client/project-updates',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action:'mark_read',projectId})});
  }catch(error){target.textContent=error.message||'Could not load project collaboration.';}
 }
+async function renderProjectFiles(projectId,target){
+ try{
+  const response=await fetch('/api/client/project-files?projectId='+encodeURIComponent(projectId),{cache:'no-store',credentials:'same-origin'});
+  const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'Project file storage is not ready.');
+  target.replaceChildren();
+  if(!data.files.length){const empty=document.createElement('p');empty.className='request-meta';empty.textContent='No files have been shared on this project yet.';target.append(empty);}
+  for(const file of data.files){
+   const row=document.createElement('p');row.className='request-meta';
+   const link=document.createElement('a');link.href='/api/project-files/'+encodeURIComponent(file.id);link.textContent=file.original_name+' · version '+file.version+' · '+Math.ceil(file.size_bytes/1024)+' KB';link.style.color='#087f86';row.append(link);target.append(row);
+  }
+ }catch(error){target.textContent=error.message||'Project files are currently unavailable.';}
+}
+async function uploadProjectFile(projectId,fileInput,status){
+ const file=fileInput.files?.[0];if(!file){status.textContent='Choose a file first.';return;}
+ const form=new FormData();form.append('projectId',projectId);form.append('file',file);
+ const response=await fetch('/api/client/project-files',{method:'POST',credentials:'same-origin',body:form});
+ const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'Upload failed.');
+ fileInput.value='';status.textContent='File uploaded successfully.';return data;
+}
 async function loadProjects(){
  const target=document.getElementById('clientProjects');
  try{
@@ -133,6 +152,17 @@ async function loadProjects(){
    milestoneForm.append(milestoneHeading,milestoneInput,milestoneDesc,milestoneButton,planMessage);
    milestoneForm.addEventListener('submit',async event=>{event.preventDefault();milestoneButton.disabled=true;planMessage.textContent='Saving milestone…';try{await projectAction({action:'create_milestone',projectId:project.id,title:milestoneInput.value,description:milestoneDesc.value});milestoneInput.value='';milestoneDesc.value='';planMessage.textContent='Milestone saved.';await renderProjectPlan(project.id,planningBody);}catch(error){planMessage.textContent=error.message;}finally{milestoneButton.disabled=false;}});
    planning.append(milestoneForm);
+   const filesSection=document.createElement('section');filesSection.style.cssText='margin-top:16px;padding-top:14px;border-top:1px solid #e2ecef';
+   const filesHeading=document.createElement('h4');filesHeading.textContent='Project files and deliverables';filesSection.append(filesHeading);
+   const filesList=document.createElement('div');filesList.textContent='Loading project files…';filesSection.append(filesList);
+   const uploadForm=document.createElement('form');uploadForm.style.cssText='display:grid;gap:8px;margin-top:10px';
+   const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='.pdf,.txt,.csv,.docx,.xlsx,.pptx,.png,.jpg,.jpeg';fileInput.required=true;
+   const fileHint=document.createElement('span');fileHint.className='request-meta';fileHint.textContent='PDF, TXT, CSV, DOCX, XLSX, PPTX, PNG or JPG · maximum 8 MB';
+   const uploadButton=document.createElement('button');uploadButton.type='submit';uploadButton.textContent='Upload project file';
+   const uploadStatus=document.createElement('span');uploadStatus.className='request-meta';uploadStatus.setAttribute('role','status');
+   uploadForm.append(fileInput,fileHint,uploadButton,uploadStatus);
+   uploadForm.addEventListener('submit',async event=>{event.preventDefault();uploadButton.disabled=true;uploadStatus.textContent='Uploading…';try{await uploadProjectFile(project.id,fileInput,uploadStatus);await renderProjectFiles(project.id,filesList);}catch(error){uploadStatus.textContent=error.message;}finally{uploadButton.disabled=false;}});
+   filesSection.append(uploadForm);
    const collaboration=document.createElement('section');collaboration.style.cssText='margin-top:16px;padding-top:14px;border-top:1px solid #e2ecef';
    const collabTitle=document.createElement('h4');collabTitle.textContent='Messages and activity';collaboration.append(collabTitle);
    const collabBody=document.createElement('div');collabBody.textContent='Loading messages and activity…';collaboration.append(collabBody);
@@ -144,7 +174,8 @@ async function loadProjects(){
    messageForm.append(messageInput,send,messageStatus);
    messageForm.addEventListener('submit',async event=>{event.preventDefault();send.disabled=true;messageStatus.textContent='Sending…';try{const response=await fetch('/api/client/project-collaboration',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId:project.id,message:messageInput.value})});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.message||'Message could not be sent.');messageInput.value='';messageStatus.textContent='Message sent to Evolve.';await renderCollaboration(project.id,collabBody);}catch(error){messageStatus.textContent=error.message;}finally{send.disabled=false;}});
    collaboration.append(messageForm);
-   card.append(title,meta,status,notification,objective,ref,details,planning,collaboration);target.append(card);
+   card.append(title,meta,status,notification,objective,ref,details,planning,filesSection,collaboration);target.append(card);
+   renderProjectFiles(project.id,filesList);
    renderProjectPlan(project.id,planningBody);renderCollaboration(project.id,collabBody);
   }
  }catch(error){target.textContent=error.message||'Could not load your projects. Refresh to try again.';}
