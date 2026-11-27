@@ -323,8 +323,13 @@ export async function onRequestPost({ request, env }) {
       const nums = nonempty.map(numeric);
       const numericCount = nums.filter(v => v !== null).length;
       const isNumeric = nonempty.length > 0 && numericCount / nonempty.length >= 0.9;
-      const summary = { name, type: isNumeric ? "numeric" : "categorical / text", missing: values.length - nonempty.length, distinct: new Set(nonempty).size };
-      if (isNumeric) {
+      const privateField = /(^|\\b)(name|email|e-mail|phone|mobile|telephone|address|username|user\\s*id|customer\\s*id|client\\s*id|student\\s*id|employee\\s*id|passport|national\\s*id|account\\s*number)(\\b|$)/i.test(name);
+      const summary = { name, type: privateField ? "categorical / text" : isNumeric ? "numeric" : "categorical / text", missing: values.length - nonempty.length, distinct: new Set(nonempty).size };
+      if (privateField) {
+        summary.privacySuppressed = true;
+        summary.privacyReason = "The column heading identifies a personal or account field.";
+        summary.topValues = [];
+      } else if (isNumeric) {
         const sorted = nums.filter(v => v !== null).sort((a, b) => a - b);
         const sum = sorted.reduce((a, b) => a + b, 0);
         summary.numeric = {
@@ -337,7 +342,6 @@ export async function onRequestPost({ request, env }) {
       } else {
         const counts = new Map();
         for (const v of nonempty) counts.set(v, (counts.get(v) || 0) + 1);
-        const privateField = /(^|\b)(name|email|e-mail|phone|mobile|telephone|address|username|user\s*id|customer\s*id|client\s*id|student\s*id|employee\s*id|passport|national\s*id|account\s*number)(\b|$)/i.test(name);
         const hasEmail = nonempty.some(value => /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(value));
         const hasPhone = nonempty.some(value => {
           if (dateKey(value)) return false;
