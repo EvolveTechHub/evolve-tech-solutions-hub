@@ -40,6 +40,8 @@ async function renderProjectPlan(projectId,target){
   const response=await fetch('/api/client/project-work?projectId='+encodeURIComponent(projectId),{cache:'no-store',credentials:'same-origin'});
   const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'Could not load project plan.');
   target.replaceChildren();
+  const allCompleted=data.tasks.filter(task=>task.status==='Completed').length;
+  const overall=document.createElement('p');overall.className='request-meta';overall.textContent=data.tasks.length?'Overall task progress: '+allCompleted+' of '+data.tasks.length+' completed ('+Math.round(allCompleted/data.tasks.length*100)+'%)':'Overall task progress: no tasks added yet';target.append(overall);
   if(!data.milestones.length){const empty=document.createElement('p');empty.className='request-meta';empty.textContent='No milestones yet. Add the first delivery stage below.';target.append(empty);return;}
   for(const milestone of data.milestones){
    const group=document.createElement('div');group.style.cssText='border:1px solid #d9e7eb;border-radius:11px;padding:12px;margin:10px 0';
