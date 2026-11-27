@@ -22,6 +22,7 @@ export async function onRequestPost({request,env}){
    if(!title||!content)return jsonReply({ok:false,message:"Enter an update title and details."},400);
    const id=crypto.randomUUID();
    await env.DB.prepare("INSERT INTO client_project_updates(id,project_id,client_account_id,title,body,created_at) VALUES(?,?,?,?,?,?)").bind(id,projectId,project.client_account_id,title,content,now).run();
+   await env.DB.prepare("UPDATE client_projects SET updated_at=? WHERE id=?").bind(now,projectId).run();
    await env.DB.prepare("INSERT INTO client_project_activity(id,project_id,client_account_id,event_type,description,created_at) VALUES(?,?,?,'progress_update','Evolve published a project update: '||?,?)").bind(crypto.randomUUID(),projectId,project.client_account_id,title,now).run();
    return jsonReply({ok:true,message:"Project update published to the client.",update:{id,title,body:content,created_at:now}},201);
   }
