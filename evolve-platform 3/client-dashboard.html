@@ -73,25 +73,37 @@ async function renderProjectPlan(projectId,target){
 }
 async function renderCollaboration(projectId,target){
  try{
-  const response=await fetch('/api/client/project-collaboration?projectId='+encodeURIComponent(projectId),{cache:'no-store',credentials:'same-origin'});
-  const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'Could not load project updates.');
+  const [conversationResponse,updatesResponse]=await Promise.all([
+   fetch('/api/client/project-collaboration?projectId='+encodeURIComponent(projectId),{cache:'no-store',credentials:'same-origin'}),
+   fetch('/api/client/project-updates?projectId='+encodeURIComponent(projectId),{cache:'no-store',credentials:'same-origin'})
+  ]);
+  const data=await conversationResponse.json(),updatesData=await updatesResponse.json();
+  if(!conversationResponse.ok||!data.ok)throw new Error(data.message||'Could not load project messages.');
+  if(!updatesResponse.ok||!updatesData.ok)throw new Error(updatesData.message||'Could not load published updates.');
   target.replaceChildren();
-  const teamReplies=data.messages.filter(item=>item.sender_type==='team').length;
-  const notice=document.createElement('p');notice.className='request-meta';notice.textContent=teamReplies?teamReplies+' reply/replies from the Evolve team':'No Evolve team replies yet';target.append(notice);
-  const activityHeading=document.createElement('strong');activityHeading.textContent='Activity timeline';target.append(activityHeading);
-  if(!data.activity.length){const empty=document.createElement('p');empty.className='request-meta';empty.textContent='No project activity recorded yet.';target.append(empty);}
-  for(const item of data.activity){
-   const line=document.createElement('p');line.className='request-meta';line.textContent=new Date(item.created_at).toLocaleString()+' · '+item.description;target.append(line);
+  const counts=updatesData.projects?.[0]||{unread_updates:0,unread_messages:0};
+  const notice=document.createElement('p');notice.className='request-meta';
+  notice.textContent=(Number(counts.unread_updates)+Number(counts.unread_messages))+' unread notification(s) before opening this panel';target.append(notice);
+  const updateHeading=document.createElement('strong');updateHeading.textContent='Official Evolve progress updates';target.append(updateHeading);
+  if(!updatesData.updates.length){const empty=document.createElement('p');empty.className='request-meta';empty.textContent='No formal progress updates have been published yet.';target.append(empty);}
+  for(const item of [...updatesData.updates].reverse()){
+   const card=document.createElement('article');card.style.cssText='background:#f1f8f8;border:1px solid #cfe4e5;border-radius:10px;padding:12px;margin:8px 0';
+   const heading=document.createElement('strong');heading.textContent=item.title;
+   const time=document.createElement('div');time.className='request-meta';time.textContent=new Date(item.created_at).toLocaleString();
+   const body=document.createElement('p');body.style.whiteSpace='pre-wrap';body.textContent=item.body;card.append(heading,time,body);target.append(card);
   }
+  const activityHeading=document.createElement('strong');activityHeading.textContent='Activity timeline';activityHeading.style.cssText='display:block;margin-top:14px';target.append(activityHeading);
+  if(!data.activity.length){const empty=document.createElement('p');empty.className='request-meta';empty.textContent='No project activity recorded yet.';target.append(empty);}
+  for(const item of data.activity){const line=document.createElement('p');line.className='request-meta';line.textContent=new Date(item.created_at).toLocaleString()+' · '+item.description;target.append(line);}
   const messagesHeading=document.createElement('strong');messagesHeading.textContent='Conversation with Evolve';messagesHeading.style.cssText='display:block;margin-top:14px';target.append(messagesHeading);
   if(!data.messages.length){const empty=document.createElement('p');empty.className='request-meta';empty.textContent='No messages yet. Send a message to start the conversation.';target.append(empty);}
   for(const item of [...data.messages].reverse()){
    const message=document.createElement('article');message.style.cssText='background:#f6fafb;border:1px solid #e2ecef;border-radius:10px;padding:10px;margin:8px 0';
    const sender=document.createElement('strong');sender.textContent=item.sender_type==='team'?'Evolve team':'You';
    const time=document.createElement('div');time.className='request-meta';time.textContent=new Date(item.created_at).toLocaleString();
-   const body=document.createElement('p');body.textContent=item.message;
-   message.append(sender,time,body);target.append(message);
+   const body=document.createElement('p');body.textContent=item.message;message.append(sender,time,body);target.append(message);
   }
+  await fetch('/api/client/project-updates',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({action:'mark_read',projectId})});
  }catch(error){target.textContent=error.message||'Could not load project collaboration.';}
 }
 async function loadProjects(){
@@ -105,7 +117,7 @@ async function loadProjects(){
    const card=document.createElement('article');card.className='request-item';
    const title=document.createElement('h3');title.textContent=project.title;
    const meta=document.createElement('div');meta.className='request-meta';meta.textContent=project.service+' · Created '+new Date(project.created_at).toLocaleString();
-   const status=document.createElement('span');status.className='request-status';status.textContent=project.status;
+   const status=document.createElement('span');status.className='request-status';status.textContent=project.status;const notification=document.createElement('span');notification.className='request-status';notification.style.marginLeft='8px';notification.textContent='Loading notifications…';fetch('/api/client/project-updates?projectId='+encodeURIComponent(project.id),{cache:'no-store',credentials:'same-origin'}).then(r=>r.json()).then(d=>{const n=d.projects?.[0];notification.textContent=n?(Number(n.unread_updates)+Number(n.unread_messages))+' unread':'No unread notifications';}).catch(()=>{notification.textContent='Notifications unavailable';});
    const objective=document.createElement('p');objective.textContent=project.objective;
    const ref=document.createElement('p');ref.className='request-meta';ref.textContent='Project reference: '+project.id;
    const details=document.createElement('details');const summary=document.createElement('summary');summary.textContent='View approved scope and AI deliverable';summary.style.cssText='cursor:pointer;font-weight:700;color:#087f86;margin-top:12px';const scope=document.createElement('pre');scope.textContent=project.scope_snapshot||'No saved deliverable is available.';scope.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;font-size:.88rem;line-height:1.6;background:#f6fafb;border:1px solid #e2ecef;border-radius:10px;padding:14px;margin-top:10px';details.append(summary,scope);
@@ -132,7 +144,7 @@ async function loadProjects(){
    messageForm.append(messageInput,send,messageStatus);
    messageForm.addEventListener('submit',async event=>{event.preventDefault();send.disabled=true;messageStatus.textContent='Sending…';try{const response=await fetch('/api/client/project-collaboration',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId:project.id,message:messageInput.value})});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.message||'Message could not be sent.');messageInput.value='';messageStatus.textContent='Message sent to Evolve.';await renderCollaboration(project.id,collabBody);}catch(error){messageStatus.textContent=error.message;}finally{send.disabled=false;}});
    collaboration.append(messageForm);
-   card.append(title,meta,status,objective,ref,details,planning,collaboration);target.append(card);
+   card.append(title,meta,status,notification,objective,ref,details,planning,collaboration);target.append(card);
    renderProjectPlan(project.id,planningBody);renderCollaboration(project.id,collabBody);
   }
  }catch(error){target.textContent=error.message||'Could not load your projects. Refresh to try again.';}
