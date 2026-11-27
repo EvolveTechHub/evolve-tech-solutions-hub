@@ -193,7 +193,7 @@ const specialistFieldHost=document.getElementById("specialistQuestionFields");
 const activeSpecialistQuestions=specialistQuestions[key]||[];
 for(const [fieldId,question,placeholder] of activeSpecialistQuestions){
  const label=document.createElement("label");label.htmlFor="specialist_"+fieldId;label.textContent=question;
- const field=document.createElement("textarea");field.id="specialist_"+fieldId;field.dataset.specialistField=fieldId;field.maxLength=650;field.rows=2;field.style.minHeight="76px";field.placeholder=placeholder;
+ const field=document.createElement("textarea");field.id="specialist_"+fieldId;field.dataset.specialistField=fieldId;field.maxLength=400;field.rows=2;field.style.minHeight="76px";field.placeholder=placeholder;
  specialistFieldHost.append(label,field);
 }
 function specialistContext(){
