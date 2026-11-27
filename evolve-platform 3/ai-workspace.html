@@ -157,14 +157,16 @@ input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color
 <script>
 (()=>{
 const services={
-"process-optimisation":{name:"Process Optimisation",intro:"Map a workflow, identify bottlenecks and define measurable improvements.",hint:"Describe the current process, hand-offs, delays, systems involved and the target state."},
-"predictive-analytics":{name:"Data Analytics & Predictive Intelligence",intro:"Define an analytical task, forecast, performance review or tailored data insight.",hint:"Describe the data you have, the questions you need answered, the time horizon and the decisions the analysis should support."},
-"cloud-architecture":{name:"Cloud Architecture",intro:"Scope a cloud architecture, migration strategy or infrastructure improvement.",hint:"Describe your current or planned systems, workloads, scale, security requirements, budget constraints and preferred cloud environment."},
-"automation":{name:"Automation",intro:"Identify repeatable work and design an appropriate automation pathway.",hint:"Describe the trigger, steps, systems, exceptions, approvals and expected outcome of the workflow."},
-"decision-support":{name:"Decision Support",intro:"Structure a complex decision, compare scenarios and define evidence-based recommendations.",hint:"Describe the decision, available options, evaluation criteria, constraints and stakeholders."},
-"applied-ai-research":{name:"Applied AI Research",intro:"Explore an AI use case, research question, prototype or implementation pathway.",hint:"Describe the problem, intended users, available information, research questions and practical constraints."},
-"cybersecurity":{name:"Cybersecurity (Authorised Defensive Work)",intro:"Scope a defensive security review for systems you own or are authorised to protect.",hint:"Describe the authorised environment, security objectives and known concerns. Do not submit credentials or instructions to access systems without permission."},
-"custom-ai-software":{name:"Custom AI Software",intro:"Define a tailored AI-enabled application or software product.",hint:"Describe the users, core functions, integrations, data flows, constraints and expected outcomes."}
+"custom-ai-software":{name:"Custom AI Software",intro:"Define a tailored AI-enabled application, software product or system integration.",hint:"Describe the users, core functions, existing systems, integrations, data flows, security needs and expected outcomes."},
+"data-analytics-platforms":{name:"Data Analytics Platforms",intro:"Plan an analytics solution that turns organisational data into reliable reporting and operational insight.",hint:"Describe your data sources, users, reporting needs, key measures, refresh frequency, access requirements and decisions the platform should support."},
+"cybersecurity":{name:"Cybersecurity & Risk Tools",intro:"Plan authorised defensive security reviews, risk controls and practical security improvements.",hint:"Describe the systems you own or are authorised to protect, the assets in scope, security objectives and known concerns. Do not provide credentials or request unauthorised access."},
+"industry-specific-ai":{name:"Industry-specific AI",intro:"Shape an AI application around the workflows, users, constraints and outcomes of a particular industry.",hint:"Name the sector, describe the operational challenge, users, relevant data, regulatory or safety constraints and the outcome the application should support."},
+"process-optimisation":{name:"Process Optimisation",intro:"Map a workflow, identify bottlenecks and define measurable improvements.",hint:"Describe the current process, hand-offs, delays, systems involved, roles, volumes and target state."},
+"predictive-analytics":{name:"Predictive Analytics",intro:"Explore patterns in historical data and scope predictive models to anticipate future outcomes.",hint:"Describe the target to predict, available historical data, time horizon, relevant drivers, validation needs and decisions the forecast should support."},
+"cloud-architecture":{name:"Cloud Architecture",intro:"Scope a secure, resilient and cost-aware cloud architecture, migration or infrastructure improvement.",hint:"Describe your workloads, current environment, scale, availability needs, security requirements, budget and preferred cloud environment."},
+"automation":{name:"Business Process Automation",intro:"Identify repeatable work and design an appropriate, controlled automation pathway.",hint:"Describe the trigger, inputs, workflow steps, systems, exceptions, approvals, human hand-offs and expected outcome."},
+"decision-support":{name:"Decision Support",intro:"Structure complex management decisions and compare options using transparent evidence and criteria.",hint:"Describe the decision, decision owner, available options, evaluation criteria, constraints, time horizon and stakeholders."},
+"applied-ai-research":{name:"Applied AI Research",intro:"Investigate practical AI approaches, research questions, prototypes and application pathways.",hint:"Describe the problem, intended users, research question, available information, candidate approaches, evaluation criteria and practical constraints."}
 };
 const params=new URLSearchParams(location.search),key=params.get("service")||"predictive-analytics",service=services[key]||services["predictive-analytics"];
 document.getElementById("serviceLabel").textContent=service.name;
@@ -716,7 +718,7 @@ datasetFileInput.addEventListener("change",async()=>{
 });
 
 const datasetPanel=document.getElementById("datasetPanel");
-if(key==="predictive-analytics") datasetPanel.hidden=false;
+if(key==="data-analytics-platforms"||key==="predictive-analytics") datasetPanel.hidden=false;
 document.getElementById("analyseDataset").addEventListener("click",async()=>{
  const input=document.getElementById("datasetFile"),status=document.getElementById("datasetMessage"),results=document.getElementById("datasetResults"),button=document.getElementById("analyseDataset");
  if(!signedIn){status.textContent="Sign in to your Client Account before analysing a dataset.";return;}
