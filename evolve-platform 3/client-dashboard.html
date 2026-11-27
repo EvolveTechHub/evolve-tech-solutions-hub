@@ -10,11 +10,11 @@
 <section class="profile-card" id="discoveryCard" hidden><h2>Your preferred solution</h2><p id="discoverySummary"></p><div class="actions"><a id="continueWorkspace" href="workspace.html">Continue to Client Workspace</a></div></section>
 <section class="profile-card request-list"><h2>My service requests</h2><p class="request-meta">Requests submitted while signed in to this client account.</p><div id="clientRequests" aria-live="polite">Loading your requests…</div></section><section class="profile-card request-list"><h2>My AI tasks</h2><p class="request-meta">AI task results saved to your account.</p><div id="clientAiTasks" aria-live="polite">Loading AI tasks…</div><div class="actions"><a href="index.html#solutions">Choose an AI service</a></div></section><div class="dashboard-grid">
 
-<section class="feature-card"><h2>My projects</h2><p>Approved projects, milestones and delivery progress will appear here.</p><div class="status">Coming in a later release</div></section>
+<section class="feature-card" id="myProjects"><h2>My projects</h2><p>AI tasks you approve and convert into projects appear here. New projects begin in Planned status.</p><div id="clientProjects" aria-live="polite">Loading your projects…</div></section>
 <section class="feature-card"><h2>Messages and updates</h2><p>Updates and conversations with the Evolve team will be available here.</p><div class="status">Coming in a later release</div></section>
 </div></main><footer>Evolve Technology Solutions Hub · Client dashboard</footer>
 <script>
-(async()=>{const details=document.getElementById('profileDetails');try{const r=await fetch('/api/client/session',{cache:'no-store',credentials:'same-origin'});if(r.status===503){details.textContent='Client accounts are temporarily unavailable. Please contact Evolve support.';return;}const d=await r.json();if(!d.authenticated||!d.client){window.location.replace('/client.html');return;}const c=d.client;details.textContent=c.name+' · '+c.email+(c.organisation?' · '+c.organisation:'');loadRequests();loadAiTasks();const params=new URLSearchParams(window.location.search);const sector=params.get('sector'),organisation=params.get('organisation'),priority=params.get('priority'),solution=params.get('solution');if(sector&&organisation&&priority&&solution){document.getElementById('discoveryCard').hidden=false;document.getElementById('discoverySummary').textContent='Sector: '+sector+' · Organisation: '+organisation+' · Priority: '+priority+' · Preferred solution: '+solution;document.getElementById('continueWorkspace').href='workspace.html?'+params.toString();}}catch{details.textContent='We could not load your account. Please refresh the page.';}
+(async()=>{const details=document.getElementById('profileDetails');try{const r=await fetch('/api/client/session',{cache:'no-store',credentials:'same-origin'});if(r.status===503){details.textContent='Client accounts are temporarily unavailable. Please contact Evolve support.';return;}const d=await r.json();if(!d.authenticated||!d.client){window.location.replace('/client.html');return;}const c=d.client;details.textContent=c.name+' · '+c.email+(c.organisation?' · '+c.organisation:'');loadRequests();loadAiTasks();loadProjects();const params=new URLSearchParams(window.location.search);const sector=params.get('sector'),organisation=params.get('organisation'),priority=params.get('priority'),solution=params.get('solution');if(sector&&organisation&&priority&&solution){document.getElementById('discoveryCard').hidden=false;document.getElementById('discoverySummary').textContent='Sector: '+sector+' · Organisation: '+organisation+' · Priority: '+priority+' · Preferred solution: '+solution;document.getElementById('continueWorkspace').href='workspace.html?'+params.toString();}}catch{details.textContent='We could not load your account. Please refresh the page.';}
 async function loadAiTasks(){
  const target=document.getElementById('clientAiTasks');
  try{
@@ -30,6 +30,24 @@ async function loadAiTasks(){
    card.append(title,meta,preview);target.append(card);
   }
  }catch(error){target.textContent=error.message||'Could not load AI task history.';}
+}
+async function loadProjects(){
+ const target=document.getElementById('clientProjects');
+ try{
+  const response=await fetch('/api/client/projects',{cache:'no-store',credentials:'same-origin'});
+  const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'Could not load projects.');
+  if(!Array.isArray(data.projects)||!data.projects.length){target.textContent='No projects created yet. Open a saved AI task, review its scope and choose Create project to begin.';return;}
+  target.replaceChildren();
+  for(const project of data.projects){
+   const card=document.createElement('article');card.className='request-item';
+   const title=document.createElement('h3');title.textContent=project.title;
+   const meta=document.createElement('div');meta.className='request-meta';meta.textContent=project.service+' · Created '+new Date(project.created_at).toLocaleString();
+   const status=document.createElement('span');status.className='request-status';status.textContent=project.status;
+   const objective=document.createElement('p');objective.textContent=project.objective;
+   const ref=document.createElement('p');ref.className='request-meta';ref.textContent='Project reference: '+project.id;
+   card.append(title,meta,status,objective,ref);target.append(card);
+  }
+ }catch(error){target.textContent=error.message||'Could not load your projects. Refresh to try again.';}
 }
 async function loadRequests(){const target=document.getElementById('clientRequests');try{const response=await fetch('/api/client/requests',{cache:'no-store',credentials:'same-origin'});const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'Could not load requests.');if(!data.requests.length){target.textContent='No service requests are linked to this account yet. Submit a request while signed in and it will appear here.';return;}target.replaceChildren();for(const item of data.requests){const card=document.createElement('article');card.className='request-item';const title=document.createElement('h3');title.textContent=item.interest||'Service request';const meta=document.createElement('div');meta.className='request-meta';meta.textContent='Submitted '+new Date(item.created_at).toLocaleString();const status=document.createElement('span');status.className='request-status';status.textContent=item.status||'Received';const message=document.createElement('p');message.textContent=item.message||'';card.append(title,meta,status,message);target.append(card);}}catch(error){target.textContent=error.message||'Could not load your requests. Refresh to try again.';}}
 document.getElementById('logoutButton').addEventListener('click',async()=>{try{await fetch('/api/client/logout',{method:'POST',credentials:'same-origin'});}finally{window.location.replace('/client.html');}});})();
