@@ -186,7 +186,7 @@ const specialistQuestions={
 "applied-ai-research":[["question","What practical problem or research question should be investigated?","Describe the uncertainty you want the work to resolve."],["baseline","How is this problem handled today, and what is the current baseline?","Mention existing tools, process and known limitations."],["approaches","Which AI approaches or alternatives should be considered?","e.g. language models, forecasting, computer vision, rules-based methods"],["evaluation","How should a prototype or research outcome be evaluated?","e.g. accuracy, reliability, fairness, latency, usability, cost"] ]
 };
 const params=new URLSearchParams(location.search),key=params.get("service")||"predictive-analytics",service=services[key]||services["predictive-analytics"];
-const signInLink=document.getElementById("clientSignInLink");if(signInLink)signInLink.href="/client.html?returnTo="+encodeURIComponent(location.pathname+location.search);
+const returnToWorkspace=encodeURIComponent(location.pathname+location.search);document.querySelectorAll('a[href="/client.html"],a[href="client.html"]').forEach(link=>{link.href="/client.html?returnTo="+returnToWorkspace;});
 document.getElementById("serviceLabel").textContent=service.name;
 document.getElementById("workspaceTitle").textContent="Configure your "+service.name+" task";
 document.getElementById("workspaceIntro").textContent=service.intro+" "+service.hint;
