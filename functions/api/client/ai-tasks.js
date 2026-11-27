@@ -98,7 +98,7 @@ export async function onRequestPost({ request, env }) {
     const service = clean(body.service, 100);
     const objective = clean(body.objective, MAX_OBJECTIVE);
     const mode = body.mode === "Advanced" ? "Advanced" : "Guided";
-    const preferences = clean(body.preferences, 1800);
+    const preferences = clean(body.preferences, 3200);
     const aiConsent = body.aiConsent === true;
     const privacyConsent = body.privacyConsent === true;
     if (!SERVICES.has(service)) return clientJson({ ok: false, message: "Choose a valid Evolve service." }, 400);
