@@ -149,7 +149,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color
 <hr style="border:0;border-top:1px solid #e3ebee;margin:22px 0">
 <h3>Working with an account</h3>
 <p class="smallprint">Sign in to your Client Account to run AI tasks, save results and view your history. Requests sent for expert review are also linked to your account.</p>
-<p><a href="/client.html">Sign in or create a Client Account →</a></p>
+<p><a id="clientSignInLink" href="/client.html">Sign in or create a Client Account →</a></p>
 <p><a href="workspace.html">Open Client Workspace →</a></p>
 <hr style="border:0;border-top:1px solid #e3ebee;margin:22px 0">
 <h3>Data and files</h3>
@@ -186,6 +186,7 @@ const specialistQuestions={
 "applied-ai-research":[["question","What practical problem or research question should be investigated?","Describe the uncertainty you want the work to resolve."],["baseline","How is this problem handled today, and what is the current baseline?","Mention existing tools, process and known limitations."],["approaches","Which AI approaches or alternatives should be considered?","e.g. language models, forecasting, computer vision, rules-based methods"],["evaluation","How should a prototype or research outcome be evaluated?","e.g. accuracy, reliability, fairness, latency, usability, cost"] ]
 };
 const params=new URLSearchParams(location.search),key=params.get("service")||"predictive-analytics",service=services[key]||services["predictive-analytics"];
+const signInLink=document.getElementById("clientSignInLink");if(signInLink)signInLink.href="/client.html?returnTo="+encodeURIComponent(location.pathname+location.search);
 document.getElementById("serviceLabel").textContent=service.name;
 document.getElementById("workspaceTitle").textContent="Configure your "+service.name+" task";
 document.getElementById("workspaceIntro").textContent=service.intro+" "+service.hint;
