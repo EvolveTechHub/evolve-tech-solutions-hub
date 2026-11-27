@@ -582,7 +582,7 @@ function downloadManagementPdf(){
    if(chartMarker==="@@COVER_FRONT@@"){
     stream="0.025 0.11 0.17 rg\n0 0 612 792 re f\n0.03 0.50 0.55 rg\n0 0 612 12 re f\n0.08 0.25 0.31 rg\n420 0 192 792 re f\n";
     if(imageId){const scale=Math.min(120/imageDims.width,120/imageDims.height),w=imageDims.width*scale,h=imageDims.height*scale;stream+="q\n"+w+" 0 0 "+h+" 48 620 cm\n/Im1 Do\nQ\n";}
-    stream+=op("EVOLVE TECHNOLOGY SOLUTIONS HUB",48,570,12,"F2","0.55 0.91 0.88");
+    stream+=op(reportBrand(),48,570,16,"F2","0.55 0.91 0.88");
     stream+=op("ANALYTICS MANAGEMENT REPORT",48,475,25,"F2","1 1 1");
     stream+=op("A detailed review of the uploaded dataset",48,440,12,"F1","0.86 0.93 0.94");
     stream+=op("PREPARED FOR",48,330,9,"F2","0.55 0.91 0.88");
