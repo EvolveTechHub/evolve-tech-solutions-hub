@@ -989,13 +989,33 @@ function restorePendingTask(){
 }
 function safeLine(label,value){const row=document.createElement("div");row.className="review-line";const strong=document.createElement("strong");strong.textContent=label+": ";row.append(strong,document.createTextNode(value||"Not specified"));reviewContent.append(row)}
 document.getElementById("reviewButton").addEventListener("click",()=>{
- if(!form.reportValidity())return;
+ message.textContent="";
+ message.style.color="#a33434";
+ const requiredFields=["fullName","email","objective"];
+ for(const id of requiredFields){
+  const field=document.getElementById(id);
+  if(!field.value.trim()){
+   field.setCustomValidity(id==="fullName"?"Enter your full name.":id==="email"?"Enter your work email address.":"Describe what you want Evolve to accomplish.");
+   field.reportValidity();field.addEventListener("input",()=>field.setCustomValidity(""),{once:true});field.focus();
+   message.textContent="Complete the required fields before reviewing your task.";
+   return;
+  }
+ }
+ const emailField=document.getElementById("email");
+ if(!emailField.checkValidity()){emailField.reportValidity();message.textContent="Enter a valid email address before reviewing your task.";emailField.focus();return;}
+ if(!document.getElementById("privacyConsent").checked){
+  message.textContent="Please read and accept the Privacy Notice before reviewing your task.";
+  document.getElementById("privacyConsent").focus();document.getElementById("privacyConsent").scrollIntoView({behavior:"smooth",block:"center"});return;
+ }
  reviewContent.replaceChildren();
  safeLine("Service",service.name);safeLine("Mode",form.querySelector('input[name="mode"]:checked').value);
  safeLine("Objective and instructions",val("objective"));safeLine("Service-specific answers",specialistContext());safeLine("Audience",val("audience"));
  safeLine("Success measure",val("success"));safeLine("Deliverables",selectedOutputs().join(", "));
  safeLine("Constraints",val("constraints"));safeLine("Contact",val("fullName")+" · "+val("email"));
- review.hidden=false;review.scrollIntoView({behavior:"smooth",block:"nearest"});
+ review.hidden=false;
+ message.textContent="Review your service, answers and deliverables below before running the AI task.";
+ message.style.color="#08745f";
+ review.scrollIntoView({behavior:"smooth",block:"start"});
 });
 document.getElementById("editButton").addEventListener("click",()=>{review.hidden=true;document.getElementById("reviewButton").focus()});
 async function runAiTask(){
