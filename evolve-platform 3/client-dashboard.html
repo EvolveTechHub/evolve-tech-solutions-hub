@@ -76,6 +76,8 @@ async function renderCollaboration(projectId,target){
   const response=await fetch('/api/client/project-collaboration?projectId='+encodeURIComponent(projectId),{cache:'no-store',credentials:'same-origin'});
   const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'Could not load project updates.');
   target.replaceChildren();
+  const teamReplies=data.messages.filter(item=>item.sender_type==='team').length;
+  const notice=document.createElement('p');notice.className='request-meta';notice.textContent=teamReplies?teamReplies+' reply/replies from the Evolve team':'No Evolve team replies yet';target.append(notice);
   const activityHeading=document.createElement('strong');activityHeading.textContent='Activity timeline';target.append(activityHeading);
   if(!data.activity.length){const empty=document.createElement('p');empty.className='request-meta';empty.textContent='No project activity recorded yet.';target.append(empty);}
   for(const item of data.activity){
