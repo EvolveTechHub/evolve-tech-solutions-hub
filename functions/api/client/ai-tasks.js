@@ -3,7 +3,7 @@ import { clientFromRequest, clientJson, requireClientDB } from "../../lib/client
 const MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const MAX_BODY = 10000;
 const MAX_OBJECTIVE = 5000;
-const MAX_RESULT = 16000;
+const MAX_RESULT = 24000;
 const SERVICES = new Set([
   "Custom AI Software",
   "Data Analytics Platforms",
@@ -37,6 +37,31 @@ async function ensureTaskTable(DB) {
 
 function clean(value, max) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+
+const OUTPUT_BLUEPRINTS = {
+  "Custom AI Software": `Produce a software solution brief with: executive overview; problem statement and user roles; user journeys and functional requirements; non-functional requirements; proposed components and data flows; integrations and data model considerations; security, privacy and access controls; acceptance criteria; test approach; phased delivery roadmap; dependencies, risks and open decisions.`,
+  "Data Analytics Platforms": `Produce an analytics platform design with: business objectives and decisions supported; source-system inventory and ingestion; data quality and validation; modelling and metric definitions; governance, lineage and access; reporting and dashboard requirements; refresh and operational support; architecture options and trade-offs; phased implementation; risks, ownership and measurable acceptance criteria. If no dataset or source inventory was supplied, clearly identify this as a design proposal, not completed data analysis.`,
+  "Cybersecurity & Risk Tools": `Produce a defensive security assessment brief with: authorised scope and assumptions; assets and business context; high-level threat scenarios; control domains to review; risk-rating method (explain likelihood and impact, do not fabricate scores); evidence checklist; prioritised defensive remediation; incident-readiness considerations; owners and target timeframes; verification criteria; limitations and required human approval. Do not include exploit steps or offensive procedures.`,
+  "Industry-specific AI": `Produce an industry solution brief with: industry and operational context; stakeholders and workflow; problem and decision points; candidate AI use case; data readiness and quality; sector-specific legal, regulatory and safety questions requiring qualified review; AI versus non-AI options; integration and human oversight; evaluation metrics; staged pilot and rollout; risks and acceptance criteria. Never claim compliance without evidence.`,
+  "Process Optimisation": `Produce a process improvement report with: scope and intended outcome; current-state process based only on supplied facts; bottlenecks and root-cause hypotheses clearly labelled; proposed future-state process; improvement options ranked by impact and effort; roles and hand-offs; KPI definitions and baseline data needed; implementation roadmap; risks and control points; validation plan.`,
+  "Predictive Analytics": `Produce a predictive analytics study plan with: prediction question and target; unit of analysis and forecast horizon; required fields and observation window; candidate drivers and feature considerations; baseline method; candidate model families; data leakage and bias risks; train/validation/test design; suitable metrics and interpretation; monitoring and retraining; limitations and go/no-go data checklist. Do not invent predictions, model scores or accuracy.`,
+  "Cloud Architecture": `Produce a cloud architecture decision document with: workload and business requirements; assumptions and constraints; logical architecture and component responsibilities; data flows and trust boundaries; identity, networking and security; availability, backup and recovery; observability; cost controls; migration and cutover stages; rollback plan; risks; operational ownership; acceptance and resilience tests. Do not imply resources were provisioned or tested.`,
+  "Business Process Automation": `Produce an automation design specification with: business outcome; trigger and input data; step-by-step workflow; decision rules; approvals and human hand-offs; exception and retry handling; system boundaries and integration requirements; permissions and audit trail; test scenarios; rollout and rollback; operational ownership; measurable benefits and safeguards.`,
+  "Decision Support": `Produce a decision brief with: decision to be made and owner; context and time horizon; options; evaluation criteria and weights only if supplied or agreed; evidence available and missing; transparent option comparison; trade-offs and sensitivities; assumptions; recommendation with confidence level; what evidence could change the recommendation; next actions and review point. Do not invent scores or probabilities.`,
+  "Applied AI Research": `Produce an applied AI research plan with: problem framing and research questions; users and intended impact; baseline and non-AI comparator; candidate approaches; data and evaluation requirements; experiment design; success and failure criteria; privacy, fairness, safety and human oversight; prototype scope; staged validation; research risks; decision gates. Do not invent citations or claim experiments have been conducted.`
+};
+
+function outputInstructions(service, preferences, mode) {
+  const requested = ["Executive report", "Detailed technical report", "Charts and visualisations", "Implementation roadmap", "Recommendations", "Prototype or proof of concept"];
+  const selected = requested.filter(label => preferences.includes(label));
+  const base = OUTPUT_BLUEPRINTS[service] || "Provide a service-specific deliverable with scope, evidence, analysis, options, recommendations, implementation steps, risks and acceptance criteria.";
+  return `SERVICE DELIVERABLE CONTRACT:
+${base}
+Use clear Markdown headings and numbered sections. Start with a short executive summary and end with assumptions, information still required, and next actions. For every recommendation, explain its rationale, priority, owner role (not an invented person), dependencies and a measurable completion or acceptance test where possible. Include tables only where they improve comparison. Distinguish supplied facts, analysis, assumptions and proposals. Never fabricate data, citations, costs, performance, test results or completed implementation.
+Requested deliverables: ${selected.length ? selected.join(", ") : "A concise primary service deliverable and practical recommendations"}.
+If charts are requested but no quantitative data is supplied, describe the exact chart specification and required fields; do not invent chart values. If a prototype is requested, provide a clearly labelled illustrative blueprint, pseudocode or acceptance-ready specification as appropriate; do not claim a working prototype was built.
+Task mode: ${mode}. ${mode === "Advanced" ? "Follow the user's detailed instructions closely and provide technical depth." : "Guide the user through the decision, explain terminology plainly and identify the most useful next clarification."}`;
 }
 
 function systemInstructions(service) {
@@ -113,9 +138,9 @@ export async function onRequestPost({ request, env }) {
 
     const messages = [
       { role: "system", content: systemInstructions(service) },
-      { role: "user", content: `Service: ${service}\nTask mode: ${mode}\nUser's task and instructions:\n${objective}\n\nPreferred outputs and constraints:\n${preferences || "Not specified"}\n\nProduce a tailored, useful response within the workspace's stated capabilities. If required inputs are missing, identify them instead of fabricating results.` }
+      { role: "user", content: `Service: ${service}\nTask mode: ${mode}\n\nUser's task and instructions:\n${objective}\n\nService-specific answers, audience, success measure, requested deliverables and constraints:\n${preferences || "Not specified"}\n\n${outputInstructions(service, preferences, mode)}\n\nProduce the deliverable now, tailored to the selected service and grounded only in supplied information. If required inputs are missing, state what is missing and provide a clearly labelled preliminary deliverable rather than fabricating results.` }
     ];
-    const inference = await env.AI.run(MODEL, { messages, max_tokens: 1400, temperature: 0.2 });
+    const inference = await env.AI.run(MODEL, { messages, max_tokens: 2200, temperature: 0.2 });
     const result = clean(inference?.response, MAX_RESULT);
     if (!result) return clientJson({ ok: false, message: "The AI service did not return a usable result. Please try again." }, 502);
 
