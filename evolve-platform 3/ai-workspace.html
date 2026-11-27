@@ -250,7 +250,7 @@ function managementReportLines(){
   ...a.columnSummaries.map(c=>{
    const missingRate=a.rows?((c.missing/a.rows)*100).toFixed(1):"0.0";
    if(c.numeric)return c.name+" (numeric): "+c.numeric.count+" valid values; minimum "+c.numeric.min+", median "+c.numeric.median+", mean "+c.numeric.mean+", maximum "+c.numeric.max+"; "+c.missing+" missing ("+missingRate+"%); "+c.distinct+" distinct values.";
-   return c.name+" (categorical/text): "+c.distinct+" distinct values; "+c.missing+" missing ("+missingRate+"%). "+(c.privacySuppressed?"Most frequent values suppressed because this field may contain personal or identifying information.":("Most frequent recorded values: "+(c.topValues||[]).map(v=>v.value+" ("+v.count+" records)").join(", ")+"."));
+   return c.name+" (categorical/text): "+c.distinct+" distinct values; "+c.missing+" missing ("+missingRate+"%). "+(c.privacySuppressed?"Most frequent values suppressed. Reason: "+(c.privacyReason||"possible personal or identifying information"):("Most frequent recorded values: "+(c.topValues||[]).map(v=>v.value+" ("+v.count+" records)").join(", ")+"."));
   })
  ]);
  if(a.chartData)add("3. Product or category performance",[
@@ -280,7 +280,7 @@ function managementReportLines(){
   qualityIssues.length?"Data completeness risk: missing values were detected in "+qualityIssues.map(c=>c.name).join(", ")+".":"No missing values were reported in the analysed columns. These checks describe only the uploaded file; they do not establish that the data is representative or complete for the business.",
   a.duplicateRows?"Duplicate-record risk: "+a.duplicateRows+" duplicate rows were detected and should be reviewed.":"No duplicate rows were detected.",
   a.qualityFlags?.repeatedHeaderRows?"Possible repeated-header risk: "+a.qualityFlags.repeatedHeaderRows+" data rows exactly match all column headings. Review these rows against the source workbook before treating them as genuine records.":"No exact repeated-header rows were detected.",
-  a.columnSummaries.some(c=>c.privacySuppressed)?"Privacy protection: frequent values were suppressed for "+a.columnSummaries.filter(c=>c.privacySuppressed).map(c=>c.name).join(", ")+" because the fields may contain personal or identifying information.":"No columns were flagged for automatic privacy suppression; review the source before sharing the report.",
+  a.qualityFlags?.privacySuppressedColumns?.length?"Privacy protection: frequent-value summaries were suppressed for "+a.qualityFlags.privacySuppressedColumns.map(x=>x.name).join(", ")+". "+a.qualityFlags.privacySuppressedColumns.map(x=>x.name+": "+x.reason).join(" "):"No personal-identifier patterns were detected in the summarised text fields; review source data before sharing.",
   highForecast.length?"Forecast risk: high validation error affects "+highForecast.map(m=>m.metric).join(" and ")+". These projections should not guide operational decisions.":"Review validation metrics before using any forecast.",
   a.chartData?"Opportunity: category-level totals provide a basis for further investigation, within the coverage of the uploaded records.":"Opportunity: include a suitable categorical field to enable comparison.",
   "Statistical anomaly flags indicate unusual values, not proven errors, causes or business events."
@@ -583,14 +583,14 @@ function downloadManagementPdf(){
      stream+=op("Share of the selected measure total in uploaded records only.",48,145,9,"F1","0.30 0.38 0.40");
     }else if(chartMarker==="@@CHART_TIME_LINE@@"){
      const data=a.trendData,metric=0,vals=data.points.map(p=>Number(p.values?.[metric])||0),max=Math.max(1,...vals),left=70,right=550,top=210,bottom=600;
-     stream+="0.75 0.82 0.84 RG\n1 w\n"+left+" "+bottom+" m "+right+" "+bottom+" l "+left+" "+top+" l S\n";
+     stream+="0.75 0.82 0.84 RG\n1 w\n"+left+" "+bottom+" m "+right+" "+bottom+" l S\n"+left+" "+bottom+" m "+left+" "+top+" l S\n";
      stream+="0.03 0.50 0.55 RG\n2.5 w\n";
      vals.forEach((v,i)=>{const x=left+(right-left)*(i/Math.max(1,vals.length-1)),y=bottom-(bottom-top)*v/max;stream+=x+" "+y+(i===0?" m\n":" l\n");});stream+="S\n";
      vals.forEach((v,i)=>{const x=left+(right-left)*(i/Math.max(1,vals.length-1)),y=bottom-(bottom-top)*v/max;stream+="0.03 0.50 0.55 rg\n"+(x-3)+" "+(y-3)+" 6 6 re f\n";});
      stream+=op("Metric: "+data.series[0]+" · "+data.granularity+" totals · "+data.points.length+" periods",48,170,9,"F1","0.30 0.38 0.40");
     }else if(chartMarker==="@@CHART_SCATTER@@"){
      const data=a.trendData,xs=data.points.map(p=>Number(p.values?.[0])).filter(Number.isFinite),ys=data.points.map(p=>Number(p.values?.[1])).filter(Number.isFinite),xmax=Math.max(1,...xs),ymax=Math.max(1,...ys),left=85,right=550,top=220,bottom=600;
-     stream+="0.75 0.82 0.84 RG\n1 w\n"+left+" "+bottom+" m "+right+" "+bottom+" l "+left+" "+top+" l S\n";
+     stream+="0.75 0.82 0.84 RG\n1 w\n"+left+" "+bottom+" m "+right+" "+bottom+" l S\n"+left+" "+bottom+" m "+left+" "+top+" l S\n";
      data.points.forEach(p=>{const x=Number(p.values?.[0]),y=Number(p.values?.[1]);if(!Number.isFinite(x)||!Number.isFinite(y))return;const px=left+(right-left)*x/xmax,py=bottom-(bottom-top)*y/ymax;stream+="0.03 0.50 0.55 rg\n"+(px-4)+" "+(py-4)+" 8 8 re f\n";});
      stream+=op("Horizontal: "+data.series[0]+" · Vertical: "+data.series[1],48,170,9,"F1","0.30 0.38 0.40");
     }else if(chartMarker==="@@CHART_HISTOGRAM@@"){
