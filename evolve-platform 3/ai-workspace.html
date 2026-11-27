@@ -145,7 +145,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color
 </section>
 <p class="smallprint" id="aiRunNote">Sign in to your Client Account to run AI tasks. Initial limit: 3 tasks per account per 24 hours.</p>
 </div>
-<div id="formMessage" role="status" aria-live="polite"></div><section id="aiResultPanel" class="panel" hidden style="margin-top:20px;background:#f4fbfa;border-color:#b9dedd"><h2>AI task result</h2><p class="smallprint" id="aiResultMeta"></p><pre id="aiResult" style="white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.65;color:#173847"></pre><div class="actions"><button type="button" class="secondary" id="copyResult">Copy result</button><button type="button" class="secondary" id="downloadResult">Download text report</button></div></section><section class="panel" style="margin-top:20px"><h2>Recent AI tasks</h2><p class="smallprint">Your latest saved AI task results appear here when you are signed in.</p><div id="aiHistory" class="smallprint">Sign in to load your task history.</div></section>
+<div id="formMessage" role="status" aria-live="polite"></div><section id="aiResultPanel" class="panel" hidden style="margin-top:20px;background:#f4fbfa;border-color:#b9dedd"><h2>AI task result</h2><p class="smallprint" id="aiResultMeta"></p><pre id="aiResult" style="white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.65;color:#173847"></pre><div class="actions"><button type="button" class="secondary" id="copyResult">Copy result</button><button type="button" class="secondary" id="downloadResult">Download text (.txt)</button><button type="button" class="secondary" id="downloadMarkdownResult">Download Markdown (.md)</button><button type="button" class="secondary" id="downloadHtmlResult">Download formatted report (.html)</button></div></section><section class="panel" style="margin-top:20px"><h2>Recent AI tasks</h2><p class="smallprint">Your latest saved AI task results appear here when you are signed in.</p><div id="aiHistory" class="smallprint">Sign in to load your task history.</div></section>
 </form>
 </section>
 <aside class="panel side-panel">
@@ -1036,9 +1036,17 @@ document.getElementById("copyResult").addEventListener("click",async()=>{
  try{await navigator.clipboard.writeText(latestResult);document.getElementById("aiResultMeta").textContent=latestMeta+" · Copied to clipboard";}
  catch{document.getElementById("aiResultMeta").textContent="Clipboard access is unavailable in this browser.";}
 });
-document.getElementById("downloadResult").addEventListener("click",()=>{
- if(!latestResult)return;const blob=new Blob([latestResult],{type:"text/plain;charset=utf-8"});
- const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="evolve-ai-result.txt";a.click();URL.revokeObjectURL(url);
+function downloadTaskFile(content,type,extension){
+ const safeService=service.name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"evolve-ai-task";
+ const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=safeService+"-deliverable."+extension;a.click();setTimeout(()=>URL.revokeObjectURL(url),1200);
+}
+function escapeTaskHtml(value){return String(value??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
+document.getElementById("downloadResult").addEventListener("click",()=>{if(latestResult)downloadTaskFile(latestResult,"text/plain;charset=utf-8","txt");});
+document.getElementById("downloadMarkdownResult").addEventListener("click",()=>{if(latestResult)downloadTaskFile("# "+service.name+"\\n\\n"+latestMeta+"\\n\\n"+latestResult,"text/markdown;charset=utf-8","md");});
+document.getElementById("downloadHtmlResult").addEventListener("click",()=>{
+ if(!latestResult)return;
+ const html="<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>"+escapeTaskHtml(service.name)+" deliverable</title><style>body{font:16px/1.65 Arial,sans-serif;color:#173847;max-width:900px;margin:48px auto;padding:0 24px}h1{color:#0b4050}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}.meta{color:#647783;font-size:13px;border-bottom:1px solid #dce6e9;padding-bottom:16px}@media print{body{margin:15mm auto}}</style></head><body><h1>"+escapeTaskHtml(service.name)+"</h1><p class='meta'>"+escapeTaskHtml(latestMeta)+"</p><pre>"+escapeTaskHtml(latestResult)+"</pre></body></html>";
+ downloadTaskFile(html,"text/html;charset=utf-8","html");
 });
 form.addEventListener("submit",async e=>{
  e.preventDefault();if(!form.reportValidity()||review.hidden)return;
