@@ -11,7 +11,7 @@
 <section class="profile-card request-list"><h2>My service requests</h2><p class="request-meta">Requests submitted while signed in to this client account.</p><div id="clientRequests" aria-live="polite">Loading your requests…</div></section><section class="profile-card request-list"><h2>My AI tasks</h2><p class="request-meta">AI task results saved to your account.</p><div id="clientAiTasks" aria-live="polite">Loading AI tasks…</div><div class="actions"><a href="index.html#solutions">Choose an AI service</a></div></section><div class="dashboard-grid">
 
 <section class="feature-card" id="myProjects"><h2>My projects</h2><p>AI tasks you approve and convert into projects appear here. New projects begin in Planned status.</p><div id="clientProjects" aria-live="polite">Loading your projects…</div></section>
-<section class="feature-card"><h2>Messages and updates</h2><p>Updates and conversations with the Evolve team will be available here.</p><div class="status">Coming in a later release</div></section>
+<section class="feature-card"><h2>Messages and updates</h2><p>Messages and project activity are shown inside each project below. Refresh a project's collaboration panel to check for replies.</p><div class="status">Project collaboration available</div></section>
 </div></main><footer>Evolve Technology Solutions Hub · Client dashboard</footer>
 <script>
 (async()=>{const details=document.getElementById('profileDetails');try{const r=await fetch('/api/client/session',{cache:'no-store',credentials:'same-origin'});if(r.status===503){details.textContent='Client accounts are temporarily unavailable. Please contact Evolve support.';return;}const d=await r.json();if(!d.authenticated||!d.client){window.location.replace('/client.html');return;}const c=d.client;details.textContent=c.name+' · '+c.email+(c.organisation?' · '+c.organisation:'');loadRequests();loadAiTasks();loadProjects();const params=new URLSearchParams(window.location.search);const sector=params.get('sector'),organisation=params.get('organisation'),priority=params.get('priority'),solution=params.get('solution');if(sector&&organisation&&priority&&solution){document.getElementById('discoveryCard').hidden=false;document.getElementById('discoverySummary').textContent='Sector: '+sector+' · Organisation: '+organisation+' · Priority: '+priority+' · Preferred solution: '+solution;document.getElementById('continueWorkspace').href='workspace.html?'+params.toString();}}catch{details.textContent='We could not load your account. Please refresh the page.';}
@@ -71,6 +71,27 @@ async function renderProjectPlan(projectId,target){
   }
  }catch(error){target.textContent=error.message||'Could not load project plan.';}
 }
+async function renderCollaboration(projectId,target){
+ try{
+  const response=await fetch('/api/client/project-collaboration?projectId='+encodeURIComponent(projectId),{cache:'no-store',credentials:'same-origin'});
+  const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'Could not load project updates.');
+  target.replaceChildren();
+  const activityHeading=document.createElement('strong');activityHeading.textContent='Activity timeline';target.append(activityHeading);
+  if(!data.activity.length){const empty=document.createElement('p');empty.className='request-meta';empty.textContent='No project activity recorded yet.';target.append(empty);}
+  for(const item of data.activity){
+   const line=document.createElement('p');line.className='request-meta';line.textContent=new Date(item.created_at).toLocaleString()+' · '+item.description;target.append(line);
+  }
+  const messagesHeading=document.createElement('strong');messagesHeading.textContent='Conversation with Evolve';messagesHeading.style.cssText='display:block;margin-top:14px';target.append(messagesHeading);
+  if(!data.messages.length){const empty=document.createElement('p');empty.className='request-meta';empty.textContent='No messages yet. Send a message to start the conversation.';target.append(empty);}
+  for(const item of [...data.messages].reverse()){
+   const message=document.createElement('article');message.style.cssText='background:#f6fafb;border:1px solid #e2ecef;border-radius:10px;padding:10px;margin:8px 0';
+   const sender=document.createElement('strong');sender.textContent=item.sender_type==='team'?'Evolve team':'You';
+   const time=document.createElement('div');time.className='request-meta';time.textContent=new Date(item.created_at).toLocaleString();
+   const body=document.createElement('p');body.textContent=item.message;
+   message.append(sender,time,body);target.append(message);
+  }
+ }catch(error){target.textContent=error.message||'Could not load project collaboration.';}
+}
 async function loadProjects(){
  const target=document.getElementById('clientProjects');
  try{
@@ -97,8 +118,20 @@ async function loadProjects(){
    const planMessage=document.createElement('p');planMessage.className='request-meta';planMessage.setAttribute('aria-live','polite');
    milestoneForm.append(milestoneHeading,milestoneInput,milestoneDesc,milestoneButton,planMessage);
    milestoneForm.addEventListener('submit',async event=>{event.preventDefault();milestoneButton.disabled=true;planMessage.textContent='Saving milestone…';try{await projectAction({action:'create_milestone',projectId:project.id,title:milestoneInput.value,description:milestoneDesc.value});milestoneInput.value='';milestoneDesc.value='';planMessage.textContent='Milestone saved.';await renderProjectPlan(project.id,planningBody);}catch(error){planMessage.textContent=error.message;}finally{milestoneButton.disabled=false;}});
-   planning.append(milestoneForm);card.append(title,meta,status,objective,ref,details,planning);target.append(card);
-   renderProjectPlan(project.id,planningBody);
+   planning.append(milestoneForm);
+   const collaboration=document.createElement('section');collaboration.style.cssText='margin-top:16px;padding-top:14px;border-top:1px solid #e2ecef';
+   const collabTitle=document.createElement('h4');collabTitle.textContent='Messages and activity';collaboration.append(collabTitle);
+   const collabBody=document.createElement('div');collabBody.textContent='Loading messages and activity…';collaboration.append(collabBody);
+   const refresh=document.createElement('button');refresh.type='button';refresh.textContent='Refresh updates';refresh.addEventListener('click',()=>renderCollaboration(project.id,collabBody));collaboration.append(refresh);
+   const messageForm=document.createElement('form');messageForm.style.cssText='display:grid;gap:8px;margin-top:12px';
+   const messageInput=document.createElement('textarea');messageInput.required=true;messageInput.maxLength=3000;messageInput.rows=3;messageInput.placeholder='Write a message to the Evolve team…';messageInput.setAttribute('aria-label','Message to Evolve team');
+   const send=document.createElement('button');send.type='submit';send.textContent='Send message';
+   const messageStatus=document.createElement('p');messageStatus.className='request-meta';messageStatus.setAttribute('aria-live','polite');
+   messageForm.append(messageInput,send,messageStatus);
+   messageForm.addEventListener('submit',async event=>{event.preventDefault();send.disabled=true;messageStatus.textContent='Sending…';try{const response=await fetch('/api/client/project-collaboration',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({projectId:project.id,message:messageInput.value})});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.message||'Message could not be sent.');messageInput.value='';messageStatus.textContent='Message sent to Evolve.';await renderCollaboration(project.id,collabBody);}catch(error){messageStatus.textContent=error.message;}finally{send.disabled=false;}});
+   collaboration.append(messageForm);
+   card.append(title,meta,status,objective,ref,details,planning,collaboration);target.append(card);
+   renderProjectPlan(project.id,planningBody);renderCollaboration(project.id,collabBody);
   }
  }catch(error){target.textContent=error.message||'Could not load your projects. Refresh to try again.';}
 }
