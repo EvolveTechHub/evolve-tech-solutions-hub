@@ -733,7 +733,7 @@ async function prepareDatasetUpload(file){
  return new File([blob],file.name.replace(/\.xlsx$/i,"")+".csv",{type:"text/csv"});
 }
 
-loadAccount();
+
 
 const datasetFileInput=document.getElementById("datasetFile");
 const sheetPickerWrap=document.getElementById("sheetPickerWrap");
@@ -1004,7 +1004,7 @@ async function runAiTask(){
  if(!document.getElementById("aiConsent").checked){message.textContent="Please read and accept the AI Workspace Use Policy before running an AI task.";message.style.color="#a33434";return;}
  const button=document.getElementById("runAiButton");button.disabled=true;button.textContent="AI is working…";
  message.textContent="Your task is being processed. Please keep this page open.";message.style.color="#37515d";
- const preferences=["Service-specific questions and answers:\n"+(specialistContext()||"Not provided"),"Audience: "+(val("audience")||"Not specified"),"Service-specific questions and answers:\n"+(specialistContext()||"Not provided"),"Success measure: "+(val("success")||"Not specified"),"Preferred deliverables: "+(selectedOutputs().join(", ")||"Not specified"),"Constraints: "+(val("constraints")||"Not specified")].join("\n");
+ const preferences=["Service-specific questions and answers:\n"+(specialistContext()||"Not provided"),"Audience: "+(val("audience")||"Not specified"),"Success measure: "+(val("success")||"Not specified"),"Preferred deliverables: "+(selectedOutputs().join(", ")||"Not specified"),"Constraints: "+(val("constraints")||"Not specified")].join("\n");
  try{
   const response=await fetch("/api/client/ai-tasks",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({service:service.name,mode:form.querySelector('input[name="mode"]:checked').value,objective:val("objective"),preferences,aiConsent:true,privacyConsent:document.getElementById("privacyConsent").checked})});
   const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||"The AI task could not be completed.");
@@ -1030,6 +1030,7 @@ document.getElementById("signInAndRunButton").addEventListener("click",async()=>
 });
 document.getElementById("createAccountFromGate").addEventListener("click",event=>{event.preventDefault();try{savePendingTask();}catch{document.getElementById("accountGateMessage").textContent="Your browser could not preserve the task. Please try signing in instead.";return;}window.location.href="/client.html?returnTo="+encodeURIComponent(location.pathname+location.search);});
 restorePendingTask();
+loadAccount();
 document.getElementById("copyResult").addEventListener("click",async()=>{
  if(!latestResult)return;
  try{await navigator.clipboard.writeText(latestResult);document.getElementById("aiResultMeta").textContent=latestMeta+" · Copied to clipboard";}
