@@ -36,7 +36,7 @@ export async function onRequestGet({ request, env }) {
     const accountId = await clientFromRequest(request, env);
     if (!accountId) return clientJson({ ok: false, message: "Sign in to view your projects." }, 401);
     const rows = await env.DB.prepare(
-      "SELECT id,title,service,objective,status,source_ai_task_id,created_at,updated_at FROM client_projects WHERE client_account_id=? ORDER BY created_at DESC LIMIT 50"
+      "SELECT id,title,service,objective,scope_snapshot,status,source_ai_task_id,created_at,updated_at FROM client_projects WHERE client_account_id=? ORDER BY created_at DESC LIMIT 50"
     ).bind(accountId).all();
     return clientJson({ ok: true, projects: rows.results || [] });
   } catch {
