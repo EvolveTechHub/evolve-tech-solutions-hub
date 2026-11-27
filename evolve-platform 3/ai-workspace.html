@@ -145,7 +145,7 @@ input:focus,select:focus,textarea:focus{outline:3px solid #087f8c22;border-color
 </section>
 <p class="smallprint" id="aiRunNote">Sign in to your Client Account to run AI tasks. Initial limit: 3 tasks per account per 24 hours.</p>
 </div>
-<div id="formMessage" role="status" aria-live="polite"></div><section id="aiResultPanel" class="panel" hidden style="margin-top:20px;background:#f4fbfa;border-color:#b9dedd"><h2>AI task result</h2><p class="smallprint" id="aiResultMeta"></p><pre id="aiResult" style="white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.65;color:#173847"></pre><div class="actions"><button type="button" class="secondary" id="copyResult">Copy result</button><button type="button" class="secondary" id="downloadResult">Download text (.txt)</button><button type="button" class="secondary" id="downloadMarkdownResult">Download Markdown (.md)</button><button type="button" class="secondary" id="downloadHtmlResult">Download formatted report (.html)</button></div></section><section class="panel" style="margin-top:20px"><h2>Recent AI tasks</h2><p class="smallprint">Your latest saved AI task results appear here when you are signed in.</p><div id="aiHistory" class="smallprint">Sign in to load your task history.</div></section>
+<div id="formMessage" role="status" aria-live="polite"></div><section id="aiResultPanel" class="panel" hidden style="margin-top:20px;background:#f4fbfa;border-color:#b9dedd"><h2>AI task result</h2><p class="smallprint" id="aiResultMeta"></p><pre id="aiResult" style="white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;line-height:1.65;color:#173847"></pre><div class="actions"><button type="button" class="secondary" id="copyResult">Copy result</button><button type="button" class="secondary" id="downloadResult">Download text (.txt)</button><button type="button" class="secondary" id="downloadMarkdownResult">Download Markdown (.md)</button><button type="button" class="secondary" id="downloadHtmlResult">Download formatted report (.html)</button><button type="button" class="primary" id="downloadImplementationPack">Build implementation pack (.zip)</button></div></section><section class="panel" style="margin-top:20px"><h2>Recent AI tasks</h2><p class="smallprint">Your latest saved AI task results appear here when you are signed in.</p><div id="aiHistory" class="smallprint">Sign in to load your task history.</div></section>
 </form>
 </section>
 <aside class="panel side-panel">
@@ -208,7 +208,7 @@ for(const [fieldId,question,placeholder] of activeSpecialistQuestions){
 function specialistContext(){
  return activeSpecialistQuestions.map(([fieldId,question])=>({question,answer:document.getElementById("specialist_"+fieldId)?.value.trim()||""})).filter(item=>item.answer).map(item=>item.question+"\n"+item.answer).join("\n\n");
 }
-let signedIn=false,latestResult="",latestMeta="",lastDatasetAnalysis=null,latestDatasetInsights="",pendingAutoRun=false;
+let signedIn=false,latestResult="",latestMeta="",latestServiceName=service.name,latestTaskContext=null,lastDatasetAnalysis=null,latestDatasetInsights="",pendingAutoRun=false;
 async function loadAccount(){
  const history=document.getElementById("aiHistory");
  history.textContent="Checking your Client Account session…";
@@ -250,13 +250,13 @@ async function loadHistory(){
    const title=document.createElement("strong");title.textContent=task.service+" · "+task.task_mode;
    const date=document.createElement("div");date.textContent=new Date(task.created_at).toLocaleString();date.style.cssText="font-size:.78rem;color:#71818a;margin:4px 0";
    const open=document.createElement("button");open.type="button";open.className="secondary";open.textContent="View result";open.style.cssText="padding:7px 12px;margin-top:7px";
-   open.addEventListener("click",()=>showResult(task.result,task.service+" · "+new Date(task.created_at).toLocaleString()));
+   open.addEventListener("click",()=>showResult(task.result,task.service+" · "+new Date(task.created_at).toLocaleString(),task.service,{objective:task.objective,mode:task.task_mode,preferences:"Task preferences were not retained in the history record."}));
    card.append(title,date,open);target.append(card);
   }
  }catch(e){target.textContent=e.message||"Could not load AI history.";}
 }
-function showResult(result,meta){
- latestResult=result;latestMeta=meta;document.getElementById("aiResultMeta").textContent=meta;
+function showResult(result,meta,serviceName,taskContext){
+ latestResult=result;latestMeta=meta;latestServiceName=serviceName||service.name;latestTaskContext=taskContext||latestTaskContext;document.getElementById("aiResultMeta").textContent=meta;
  document.getElementById("aiResult").textContent=result;
  const panel=document.getElementById("aiResultPanel");panel.hidden=false;
  panel.scrollIntoView({behavior:"smooth",block:"start"});
@@ -1030,7 +1030,7 @@ async function runAiTask(){
   const data=await response.json();if(!response.ok||!data.ok){const error=new Error(data.message||"The AI task could not be completed.");error.status=response.status;throw error;}
   document.getElementById("accountGate").hidden=true;message.textContent="AI task completed and saved to your Client Account. Remaining tasks in the current 24-hour window: "+data.remainingToday+". Review the result before relying on it.";
   message.style.color="#08745f";
-  showResult(data.task.result,data.task.service+" · "+new Date(data.task.createdAt).toLocaleString()+" · "+data.task.model);
+  showResult(data.task.result,data.task.service+" · "+new Date(data.task.createdAt).toLocaleString()+" · "+data.task.model,data.task.service,{objective:val("objective"),mode:form.querySelector('input[name="mode"]:checked').value,preferences});
   loadHistory();
  }catch(error){
   if(error&&error.status===429){
@@ -1088,6 +1088,39 @@ form.addEventListener("submit",async e=>{
   message.style.color="#08745f";button.textContent="Submitted";
  }catch(err){message.textContent=err.message||"We could not submit your request. Please try again.";message.style.color="#a33434";button.disabled=false;button.textContent="Submit to Evolve for review";}
 });
+
+function buildImplementationPack(){
+ if(!latestResult)return;
+ const name=latestServiceName||service.name,ctx=latestTaskContext||{};
+ const plans={
+ "Custom AI Software":["Confirm user roles and journeys.","Convert features into testable requirements.","Confirm data entities and integration contracts.","Review authentication, access, privacy and error handling.","Specify development, staging and production environments.","Prepare functional, integration and accessibility tests.","Require code, security and user-acceptance review."],
+ "Data Analytics Platforms":["Inventory data sources, owners and permitted uses.","Agree KPI definitions, calculations, units and periods.","Design ingestion, validation, lineage and reconciliation.","Define role-based access, masking and retention.","Prototype priority dashboards with approved sample data.","Test source reconciliation and access boundaries.","Obtain data-owner approval."],
+ "Cybersecurity & Risk Tools":["Record written authorisation and exact defensive scope.","Create an asset inventory.","Map controls and collect approved evidence without credentials.","Use an agreed risk-rating method; do not invent scores.","Prioritise defensive remediation and owners.","Validate fixes with approved non-disruptive checks.","Obtain security-owner approval."],
+ "Industry-specific AI":["Confirm industry context, users and workflow.","Identify data rights, quality and retention limits.","Map decisions requiring human review.","Compare AI with non-AI alternatives.","Define representative pilot cases and evaluation criteria.","Review sector-specific legal and safety requirements.","Approve a limited pilot after stakeholder review."],
+ "Process Optimisation":["Document workflow, roles and hand-offs.","Establish baseline volumes, times and error rates.","Validate bottleneck hypotheses with evidence.","Design future workflow and exception paths.","Assign owners and measurable KPIs.","Pilot changes and compare with baseline.","Obtain process-owner acceptance."],
+ "Predictive Analytics":["Define prediction target and horizon.","Check historical coverage and data quality.","Create a baseline model.","Separate training, validation and test periods.","Evaluate error and subgroup performance.","Document bias, drift and uncertainty.","Require validation and monitoring approval."],
+ "Cloud Architecture":["Confirm workload and availability requirements.","Draw components, data flows and trust boundaries.","Specify least-privilege access and secret management.","Define backup, recovery and incident procedures.","Review resource needs and cost limits.","Test migration and rollback outside production.","Obtain architecture and security approval."],
+ "Business Process Automation":["Map triggers, inputs, decisions and outputs.","Preserve required approvals and human hand-offs.","Define permissions and audit logging.","Specify exception, retry and duplicate handling.","Test normal and failed inputs.","Pilot reversibly and monitor errors.","Obtain process-owner sign-off."],
+ "Decision Support":["Confirm decision owner, deadline and options.","Agree criteria before scoring.","Separate evidence, assumptions and judgement.","Test sensitivity to alternative assumptions.","Identify missing evidence.","Document accountability and human approval.","Review outcomes after the decision."],
+ "Applied AI Research":["Define research question and baseline.","Confirm data rights and representative sampling.","Specify bounded prototype scope.","Predefine metrics and failure criteria.","Test reliability, bias, safety and usability.","Document limitations and reproducibility.","Obtain research and product-owner review."]
+ };
+ const checklist=plans[name]||["Confirm scope, users, requirements and owners.","Validate assumptions and dependencies.","Define measurable acceptance criteria.","Prepare test cases and operational controls.","Review privacy, security and accessibility.","Obtain human approval before operational use."];
+ const objective=ctx.objective||"Not available in this saved task record.";
+ const preferences=ctx.preferences||"Not available.";
+ const mode=ctx.mode||"Not recorded";
+ const brief=["# Task brief","","Service: "+name,"Mode: "+mode,"Generated: "+new Date().toISOString(),"","## Objective",objective,"","## Service-specific answers and preferences",preferences,"","## Boundary","Planning aid only. This pack does not mean that software, integrations, infrastructure or controls have been built, tested or deployed."].join("\n");
+ const implementation=["# Implementation checklist","",...checklist.map(x=>"- [ ] "+x),"","## Delivery controls","- [ ] Confirm scope, exclusions and change authority.","- [ ] Assign accountable owners and dates.","- [ ] Keep development and testing separate from production.","- [ ] Record evidence for each acceptance criterion.","- [ ] Document monitoring, support and rollback.","- [ ] Obtain required business, technical and security approvals."].join("\n");
+ const testItems=["Requirements coverage maps each requirement to an acceptance test.","Valid inputs produce the documented outcome.","Missing and malformed inputs are handled safely.","Users can access only authorised information and functions.","Privacy, retention and sharing controls are checked.","Errors, timeouts, retries and recovery are tested.","Accessibility is reviewed using keyboard and assistive technology.","Consequential actions have accountable human approval.","Release evidence, limitations and rollback are recorded."];
+ const testPlan=["# Test and acceptance plan","","Define expected results and evidence before testing.","",...testItems.map((x,i)=>(i+1)+". "+x),"","| Test ID | Scenario | Expected result | Actual result | Evidence | Status |","|---|---|---|---|---|---|","| T-01 |  |  |  |  | Not run |","| T-02 |  |  |  |  | Not run |","| T-03 |  |  |  |  | Not run |","","No test results are pre-filled; no implementation or test execution has taken place."].join("\n");
+ const safety=["# Human review and safety","","- Verify facts against authoritative sources.","- Do not include passwords, API keys or access tokens.","- Review personal, confidential and regulated data before sharing.","- Obtain qualified legal, privacy, safety or security review where relevant.","- Cybersecurity work must be defensive and limited to owned or explicitly authorised systems.","- Keep humans accountable for consequential decisions and live changes.","- Generated plans are not proof of completed work.","","## Approval record","- Business owner: ____________________","- Technical owner: ____________________","- Security / privacy reviewer: ____________________","- Approval date: ____________________"].join("\n");
+ const readme=[name+" — Implementation Pack","","00-task-brief.md — scope and context.","01-ai-deliverable.md — saved AI output.","02-implementation-checklist.md — service-specific work checklist.","03-test-and-acceptance-plan.md — test cases and blank evidence log.","04-human-review-and-safety.md — review and approval controls.","","STATUS: Planning pack only. Evolve has not implemented, executed, tested, provisioned or deployed this work.","Review, assign owners and obtain approvals before acting."].join("\n");
+ const safe=name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"evolve-task";
+ const entries={"README.txt":readme,"00-task-brief.md":brief,"01-ai-deliverable.md":"# "+name+" — AI-generated deliverable\n\n"+latestMeta+"\n\n"+latestResult,"02-implementation-checklist.md":implementation,"03-test-and-acceptance-plan.md":testPlan,"04-human-review-and-safety.md":safety};
+ exportDownload(makeOfficeZip(entries,"application/zip"),safe+"-implementation-pack.zip");
+ document.getElementById("aiResultMeta").textContent=latestMeta+" · Implementation pack prepared locally; review before use.";
+}
+document.getElementById("downloadImplementationPack").addEventListener("click",buildImplementationPack);
+
 })();
 </script>
 </body>
