@@ -362,7 +362,7 @@ function makeOfficeZip(entries,mime){
  const table=new Uint32Array(256);for(let n=0;n<256;n++){let x=n;for(let k=0;k<8;k++)x=(x&1)?(0xedb88320^(x>>>1)):(x>>>1);table[n]=x>>>0;}
  const crc=d=>{let x=0xffffffff;for(const b of d)x=table[(x^b)&255]^(x>>>8);return(x^0xffffffff)>>>0;};
  const local=[],central=[];let offset=0;
- for(const name of Object.keys(entries)){const nb=new TextEncoder().encode(name),data=new TextEncoder().encode(entries[name]),sum=crc(data);
+ for(const name of Object.keys(entries)){const nb=new TextEncoder().encode(name),data=entries[name] instanceof Uint8Array?entries[name]:new TextEncoder().encode(entries[name]),sum=crc(data);
   const lh=join([new Uint8Array([80,75,3,4]),new Uint8Array(u16(20)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u32(sum)),new Uint8Array(u32(data.length)),new Uint8Array(u32(data.length)),new Uint8Array(u16(nb.length)),new Uint8Array(u16(0)),nb,data]);
   const ch=join([new Uint8Array([80,75,1,2]),new Uint8Array(u16(20)),new Uint8Array(u16(20)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u32(sum)),new Uint8Array(u32(data.length)),new Uint8Array(u32(data.length)),new Uint8Array(u16(nb.length)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u16(0)),new Uint8Array(u32(0)),new Uint8Array(u32(offset)),nb]);
   local.push(lh);central.push(ch);offset+=lh.length;
